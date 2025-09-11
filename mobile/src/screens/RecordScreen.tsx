@@ -28,6 +28,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import SecureStorageService from '../services/SecureStorageService';
 import WebhookService from '../services/WebhookService';
+import TranscriptStorageService from '../services/TranscriptStorageService';
 import { Buffer } from 'buffer';
 import { useTheme, spacing, borderRadius, typography, shadows } from '../theme/colors';
 
@@ -164,7 +165,8 @@ export default function RecordScreen({ route }: any) {
     WebhookService.on('monitoringStarted', () => setIsWebhookMonitoring(true));
     WebhookService.on('monitoringStopped', () => setIsWebhookMonitoring(false));
 
-    loadTranscriptsFromBackend();
+    // Load local transcripts first for immediate display
+    initializeTranscripts();
 
     // Auto-start webhook monitoring
     WebhookService.startMonitoring();
@@ -292,6 +294,31 @@ export default function RecordScreen({ route }: any) {
     }
   };
 
+  // Initialize transcripts: load from local storage first, then sync with backend
+  const initializeTranscripts = async () => {
+    try {
+      console.log('🚀 Initializing transcripts...');
+      
+      // 1. Load from local storage first for immediate display
+      const storedTranscripts = await TranscriptStorageService.loadTranscripts();
+      if (storedTranscripts.length > 0) {
+        console.log(`📱 Loaded ${storedTranscripts.length} transcripts from local storage`);
+        setTranscripts(storedTranscripts);
+        setFilteredTranscripts(storedTranscripts);
+      }
+      
+      // 2. Then sync with backend (with small delay to show local data first)
+      setTimeout(() => {
+        console.log('🔄 Syncing with backend...');
+        loadTranscriptsFromBackend();
+      }, 500);
+      
+    } catch (error) {
+      console.error('❌ Failed to initialize transcripts:', error);
+      // Fallback to just backend loading
+      loadTranscriptsFromBackend();
+    }
+  };
 
   const loadTranscriptsFromBackend = async () => {
     try {
@@ -454,7 +481,11 @@ export default function RecordScreen({ route }: any) {
         
         setTranscripts(deduplicatedTranscripts);
         setFilteredTranscripts(deduplicatedTranscripts);
-        console.log('✅ Transcripts state updated with merged data');
+        
+        // Save merged transcripts to local storage for persistence
+        await TranscriptStorageService.saveTranscripts(deduplicatedTranscripts);
+        
+        console.log('✅ Transcripts state updated with merged data and saved to local storage');
       }
     } catch (error) {
       console.error('Error loading transcripts:', error);
@@ -744,6 +775,10 @@ export default function RecordScreen({ route }: any) {
               const updatedTranscripts = [immediateTranscript, ...transcripts];
               setTranscripts(updatedTranscripts);
               setFilteredTranscripts(updatedTranscripts);
+              
+              // CRITICAL: Save to local storage immediately so it persists on app refresh
+              await TranscriptStorageService.saveTranscripts(updatedTranscripts);
+              console.log(`💾 Saved immediate transcript to local storage for persistence`);
               
               console.log(`✅ Local transcript added - now showing ${updatedTranscripts.length} total transcripts`);
               
