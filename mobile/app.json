@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "Tai",
+    "name": "Taya",
     "slug": "app",
-    "scheme": "tai",
+    "scheme": "taya",
     "owner": "amzyst",
     "version": "1.0.2",
     "orientation": "portrait",
@@ -31,7 +31,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.taiyaki.tai",
+      "bundleIdentifier": "com.taiyaki.taya",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSMicrophoneUsageDescription": "This app needs access to the microphone to record audio for transcription.",
@@ -55,7 +55,7 @@
         "android.permission.BLUETOOTH_ADMIN",
         "android.permission.BLUETOOTH_CONNECT"
       ],
-      "package": "com.taiyaki.tai"
+      "package": "com.taiyaki.taya"
     },
     "web": {
       "favicon": "./assets/favicon.png"

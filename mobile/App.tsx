@@ -87,9 +87,9 @@ export default function App() {
   function handleURL(url: string | null) {
     console.log('Deep link received:', url);
     
-    if (!url || !url.includes('tai://')) return;
+    if (!url || !url.includes('taya://')) return;
     
-    const action = url.replace('tai://', '').toLowerCase();
+    const action = url.replace('taya://', '').toLowerCase();
     console.log('Parsed action:', action);
     
     // Emit event instead of direct calls
