@@ -275,11 +275,43 @@ export default function RecordScreen({ route }: any) {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Generate AI title and summary for transcripts that don't have them
+  const generateTitleAndSummary = async (text: string): Promise<{ title: string; summary: string }> => {
+    try {
+      console.log('🤖 Generating AI title and summary for text:', text.slice(0, 100) + '...');
+      const result = await APIService.generateTitleAndSummary(text);
+      console.log('✅ Generated title:', result.title);
+      console.log('✅ Generated summary:', result.summary);
+      return result;
+    } catch (error) {
+      console.error('❌ Failed to generate title/summary:', error);
+      // Fallback to simple text-based title/summary
+      const title = text.split('\n')[0]?.slice(0, 50) || 'Untitled Recording';
+      const summary = text.slice(0, 160) + (text.length > 160 ? '...' : '');
+      return { title, summary };
+    }
+  };
+
+
   const loadTranscriptsFromBackend = async () => {
     try {
       console.log('Loading transcripts from backend...');
       const recentTranscripts = await APIService.getRecentTranscripts(100);
-      console.log('Received', recentTranscripts?.length, 'transcripts from backend');
+      console.log('📡 Received', recentTranscripts?.length, 'transcripts from backend');
+      
+      // Debug: Show the IDs and timestamps of what we got from backend
+      console.log('🔍 Backend transcript IDs and timestamps:');
+      recentTranscripts?.slice(0, 5).forEach((t, i) => {
+        console.log(`  ${i+1}. ID:${t.id} - ${t.timestamp} - ${t.title || t.aiTitle || 'No title'}`);
+      });
+      
+      // Debug: Check if any recording IDs from recent recordings are in the backend response
+      const recentRecordingIds = transcripts.slice(0, 3).map(t => t.id);
+      console.log('🔍 Recent local recording IDs:', recentRecordingIds);
+      const foundIds = recentTranscripts?.filter(t => recentRecordingIds.includes(t.id)).map(t => t.id) || [];
+      console.log('✅ Found these recent IDs in backend:', foundIds);
+      const missingIds = recentRecordingIds.filter(id => !foundIds.includes(id));
+      console.log('❌ Missing these recent IDs from backend:', missingIds);
       
       if (recentTranscripts && recentTranscripts.length > 0) {
         // Create a map of current transcripts to preserve local audio paths
@@ -287,26 +319,89 @@ export default function RecordScreen({ route }: any) {
           transcripts.map(t => [t.id, t])
         );
         
+        // Process backend transcripts - show immediately, generate AI titles/summaries in background
         const backendTranscripts: Transcript[] = recentTranscripts.map((t: any) => {
-          const fallbackTitle = (t.title && t.title.trim().length > 0)
-            ? t.title
-            : (t.text ? (t.text.split('\n')[0] || t.text).slice(0, 50) : 'Untitled');
-          const fallbackSummary = (t.summary && t.summary.trim().length > 0)
-            ? t.summary
-            : (t.text ? (t.text.slice(0, 160) + (t.text.length > 160 ? '…' : '')) : '');
+          const textContent = t.text || t.transcription || '';
+          
+          // Debug title/summary data from backend
+          console.log(`🔍 Processing transcript ${t.id}:`);
+          console.log(`  - text: "${textContent?.slice(0, 50)}..."`);
+          console.log(`  - title: "${t.title}"`);
+          console.log(`  - aiTitle: "${t.aiTitle}"`);
+          console.log(`  - summary: "${t.summary}"`);
+          console.log(`  - aiSummary: "${t.aiSummary}"`);
+          
+          // Check if we need to fix "no speech detected" titles/summaries
+          const hasNoSpeechTitle = t.title && t.title.toLowerCase().includes('no speech detected');
+          const hasNoSpeechAiTitle = t.aiTitle && t.aiTitle.toLowerCase().includes('no speech detected');
+          const hasNoSpeechSummary = t.summary && t.summary.toLowerCase().includes('recording did not contain');
+          const hasValidText = textContent && textContent.trim().length > 0 && !textContent.toLowerCase().includes('no speech detected');
+          
+          // Fallback titles/summaries for immediate display
+          let displayTitle = t.title;
+          let displayAiTitle = t.aiTitle;
+          let displaySummary = t.summary;
+          let displayAiSummary = t.aiSummary;
+          
+          // If we have valid text but "no speech detected" titles, generate AI ones
+          if (hasValidText && (hasNoSpeechTitle || hasNoSpeechAiTitle || hasNoSpeechSummary)) {
+            console.log(`🔄 Will generate AI title for transcript with valid text: ${t.id}`);
+            // Generate in background without blocking
+            setTimeout(async () => {
+              try {
+                console.log(`🤖 Generating AI title/summary for transcript ${t.id}`);
+                const generated = await generateTitleAndSummary(textContent);
+                
+                // Update transcript in state
+                setTranscripts(prev => prev.map(transcript => 
+                  transcript.id === t.id 
+                    ? { 
+                        ...transcript, 
+                        aiTitle: generated.title,
+                        aiSummary: generated.summary,
+                        title: hasNoSpeechTitle ? generated.title : transcript.title,
+                        summary: hasNoSpeechSummary ? generated.summary : transcript.summary
+                      } 
+                    : transcript
+                ));
+                setFilteredTranscripts(prev => prev.map(transcript => 
+                  transcript.id === t.id 
+                    ? { 
+                        ...transcript, 
+                        aiTitle: generated.title,
+                        aiSummary: generated.summary,
+                        title: hasNoSpeechTitle ? generated.title : transcript.title,
+                        summary: hasNoSpeechSummary ? generated.summary : transcript.summary
+                      } 
+                    : transcript
+                ));
+                console.log(`✅ Updated transcript ${t.id} with AI title: "${generated.title}"`);
+              } catch (error) {
+                console.error(`❌ Failed to generate AI title for ${t.id}:`, error);
+              }
+            }, Math.random() * 2000 + 1000); // Random delay 1-3 seconds to spread out API calls
+          }
+          
+          // Create fallback if no valid title exists
+          const fallbackTitle = (textContent && textContent.trim().length > 0) 
+            ? (textContent.split('\n')[0] || textContent).slice(0, 50) 
+            : 'Untitled';
+          const fallbackSummary = (textContent && textContent.trim().length > 0) 
+            ? (textContent.slice(0, 160) + (textContent.length > 160 ? '…' : '')) 
+            : 'No summary available';
           
           // Check if we have local data for this transcript
           const localData = localTranscriptMap.get(t.id);
           
           return {
             id: t.id,
-            text: t.text,
-            title: t.title,
-            summary: t.summary,
+            text: textContent || '[No content]',
+            title: t.title || fallbackTitle,
+            summary: t.summary || fallbackSummary,
             timestamp: new Date(t.timestamp),
             path: t.path,
-            aiTitle: t.aiTitle || fallbackTitle,
-            aiSummary: t.aiSummary || fallbackSummary,
+            aiTitle: t.aiTitle || t.title || fallbackTitle,
+            aiSummary: t.aiSummary || t.summary || fallbackSummary,
             durationSeconds: t.durationSeconds ?? t.duration_seconds ?? null,
             // Preserve local audio path if we have it
             localAudioPath: localData?.localAudioPath,
@@ -315,13 +410,20 @@ export default function RecordScreen({ route }: any) {
           } as any;
         });
 
-        // Find transcripts that are local-only (not yet in backend)
+        // Find transcripts that are local-only (not yet in backend) - be more aggressive about preserving recent ones
+        const currentTime = new Date().getTime();
         const localOnlyTranscripts = transcripts.filter(localT => {
           const foundInBackend = backendTranscripts.some(backendT => backendT.id === localT.id);
-          if (!foundInBackend && localT.localAudioPath) {
-            console.log(`Preserving local transcript not yet in backend: ${localT.id}`);
+          const age = currentTime - new Date(localT.timestamp).getTime();
+          const isVeryRecent = age < 300000; // 5 minutes
+          
+          if (!foundInBackend) {
+            if (isVeryRecent || localT.localAudioPath || localT.source === 'recording') {
+              console.log(`🛡️ Preserving local transcript not yet in backend: ${localT.id} (age: ${Math.round(age/1000)}s, source: ${localT.source})`);
+              return true;
+            }
           }
-          return !foundInBackend && localT.localAudioPath; // Only keep if it has local data
+          return false;
         });
         
         // Combine and sort by timestamp (newest first)
@@ -342,10 +444,17 @@ export default function RecordScreen({ route }: any) {
           return acc;
         }, [] as Transcript[]);
         
-        console.log(`Merging transcripts: ${localOnlyTranscripts.length} local-only + ${backendTranscripts.length} backend = ${mergedTranscripts.length} merged -> ${deduplicatedTranscripts.length} deduplicated`);
+        console.log(`🔀 Merging transcripts: ${localOnlyTranscripts.length} local-only + ${backendTranscripts.length} backend = ${mergedTranscripts.length} merged -> ${deduplicatedTranscripts.length} deduplicated`);
+        
+        // Debug: Show final transcript order
+        console.log('🏆 Final transcript order (top 3):');
+        deduplicatedTranscripts.slice(0, 3).forEach((t, i) => {
+          console.log(`  ${i+1}. ID:${t.id} - ${t.timestamp} - ${t.aiTitle || t.title || 'No title'}`);
+        });
+        
         setTranscripts(deduplicatedTranscripts);
         setFilteredTranscripts(deduplicatedTranscripts);
-        console.log('Transcripts updated with merged data');
+        console.log('✅ Transcripts state updated with merged data');
       }
     } catch (error) {
       console.error('Error loading transcripts:', error);
@@ -611,8 +720,39 @@ export default function RecordScreen({ route }: any) {
             const response = await APIService.sendAudioBase64(base64Audio, currentRecordingId, 'm4a');
             
             if (response.transcription) {
-              console.log('Transcription received:', response.transcription);
-              setTimeout(loadTranscriptsFromBackend, 2000);
+              console.log('✅ Transcription received:', response.transcription);
+              console.log('🆔 Recording ID:', currentRecordingId);
+              console.log('⏰ Recording timestamp:', new Date().toISOString());
+              console.log('📝 Response data:', JSON.stringify(response, null, 2));
+              
+              // Create immediate local transcript to show in UI right away
+              const immediateTranscript: Transcript = {
+                id: currentRecordingId,
+                text: response.transcription,
+                title: response.title || 'New Recording',
+                summary: response.summary || 'Processing...',
+                timestamp: new Date(),
+                aiTitle: response.title || 'Processing AI title...',
+                aiSummary: response.summary || 'Generating AI summary...',
+                source: 'recording',
+                path: response.recordingId || currentRecordingId,
+              };
+              
+              console.log('📱 Adding immediate transcript to local state:', immediateTranscript.id);
+              
+              // Add to front of transcript list immediately
+              const updatedTranscripts = [immediateTranscript, ...transcripts];
+              setTranscripts(updatedTranscripts);
+              setFilteredTranscripts(updatedTranscripts);
+              
+              console.log(`✅ Local transcript added - now showing ${updatedTranscripts.length} total transcripts`);
+              
+              // Still refresh from backend but don't let it override our local transcript
+              setTimeout(() => {
+                console.log('🔄 About to refresh transcripts from backend...');
+                console.log('🔍 Looking for recording ID in backend:', currentRecordingId);
+                loadTranscriptsFromBackend();
+              }, 4000); // Increased delay to 4 seconds
             }
           }
         }

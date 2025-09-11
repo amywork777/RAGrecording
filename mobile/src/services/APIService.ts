@@ -112,11 +112,16 @@ interface SearchResult {
   timestamp: string;
   recordingId: string;
   score: number;
-  // Additional fields from the new transcriptions endpoint
+  // Additional fields for titles and summaries
   title?: string;
   summary?: string;
+  aiTitle?: string;
+  aiSummary?: string;
   path?: string;
   source?: string;
+  audioUrl?: string;
+  durationSeconds?: number;
+  duration_seconds?: number;
 }
 
 interface SearchResponse {
@@ -220,36 +225,46 @@ class APIService {
   }
 
   async getRecentTranscripts(limit: number = 10): Promise<SearchResult[]> {
-    // Use the NEW transcriptions endpoint that was just added
+    // Use the transcriptions endpoint that was added in recent commits
     console.log(`Fetching recent transcripts from: ${API_BASE_URL}/api/transcriptions`);
-    const response = await fetchWithFallback(`${API_BASE_URL}/api/transcriptions?limit=${limit}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    const response = await fetch(`${API_BASE_URL}/api/transcriptions?limit=${limit}`);
 
     if (!response.ok) {
       throw new Error(`Failed to fetch recent transcripts: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
-    console.log(`✅ Fetched ${data.transcriptions?.length || 0} transcripts from NEW endpoint`);
+    console.log(`✅ Fetched ${data.transcriptions?.length || 0} transcripts from backend`);
     
     // Transform the backend response to match the expected SearchResult format
     const transcriptions = data.transcriptions || [];
-    const results: SearchResult[] = transcriptions.map((t: any) => ({
-      id: t.id,
-      text: t.transcription || t.text || '[No content]',
-      timestamp: t.timestamp,
-      recordingId: t.recordingId,
-      score: t.score || 1.0,
-      // Additional fields for compatibility
-      title: t.title,
-      summary: t.summary,
-      path: t.path,
-      source: t.source,
-    }));
+    const results: SearchResult[] = transcriptions.map((t: any) => {
+      console.log(`Processing transcript ${t.id}:`, {
+        hasTranscription: !!t.transcription,
+        hasText: !!t.text,
+        hasTitle: !!t.title,
+        hasSummary: !!t.summary,
+        aiTitle: t.aiTitle,
+        aiSummary: t.aiSummary,
+      });
+      
+      return {
+        id: t.id,
+        text: t.transcription || t.text || '[No content]',
+        timestamp: t.timestamp,
+        recordingId: t.recordingId || t.id,
+        score: t.score || 1.0,
+        // Include all the title and summary fields
+        title: t.title || t.aiTitle,
+        summary: t.summary || t.aiSummary,
+        aiTitle: t.aiTitle || t.title,
+        aiSummary: t.aiSummary || t.summary,
+        path: t.path,
+        source: t.source || 'backend',
+        audioUrl: t.audioUrl,
+        durationSeconds: t.durationSeconds || t.duration_seconds,
+      };
+    });
     
     console.log(`✅ Transformed ${results.length} transcriptions for mobile app`);
     return results;
