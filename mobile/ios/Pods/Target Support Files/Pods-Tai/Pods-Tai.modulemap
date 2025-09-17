@@ -1,0 +1,6 @@
+module Pods_Tai {
+  umbrella header "Pods-Tai-umbrella.h"
+
+  export *
+  module * { export * }
+}

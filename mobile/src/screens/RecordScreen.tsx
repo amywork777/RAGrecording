@@ -338,7 +338,7 @@ export default function RecordScreen({ route }: any) {
 
       // Read the file as base64
       const base64Audio = await FileSystem.readAsStringAsync(uri, { 
-        encoding: FileSystem.EncodingType.Base64 
+        encoding: 'base64' as any
       });
       
       // Send to backend for transcription and storage

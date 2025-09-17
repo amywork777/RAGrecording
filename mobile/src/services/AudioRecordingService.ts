@@ -1,9 +1,14 @@
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system';
+import { AppState, AppStateStatus } from 'react-native';
+
+// Background task helpers removed for Expo Go compatibility
 
 class AudioRecordingService {
   private recording: Audio.Recording | null = null;
   private recordingUri: string | null = null;
+  private appStateSubscription: any = null;
+  private isBackgroundRecordingActive: boolean = false;
 
   async initialize() {
     try {
@@ -15,10 +20,59 @@ class AudioRecordingService {
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
+        staysActiveInBackground: true, // Enable background audio
       });
+
+      // Set up app state listener for background recording
+      this.setupAppStateListener();
     } catch (error) {
       console.error('Failed to initialize audio:', error);
       throw error;
+    }
+  }
+
+  private setupAppStateListener() {
+    if (this.appStateSubscription) {
+      this.appStateSubscription.remove();
+    }
+
+    this.appStateSubscription = AppState.addEventListener('change', this.handleAppStateChange.bind(this));
+  }
+
+  private async handleAppStateChange(nextAppState: AppStateStatus) {
+    console.log('AudioRecordingService: App state changed to:', nextAppState);
+    
+    if (this.recording) {
+      if (nextAppState === 'background' || nextAppState === 'inactive') {
+        // App going to background while recording - start background task
+        await this.startBackgroundRecording();
+      } else if (nextAppState === 'active') {
+        // App coming back to foreground - stop background task
+        await this.stopBackgroundRecording();
+      }
+    }
+  }
+
+  private async startBackgroundRecording() {
+    try {
+      if (!this.isBackgroundRecordingActive) {
+        // Keep recording alive in background using the audio background mode
+        this.isBackgroundRecordingActive = true;
+        console.log('AudioRecordingService: Background recording enabled');
+      }
+    } catch (error) {
+      console.error('Failed to start background recording:', error);
+    }
+  }
+
+  private async stopBackgroundRecording() {
+    try {
+      if (this.isBackgroundRecordingActive) {
+        this.isBackgroundRecordingActive = false;
+        console.log('AudioRecordingService: Background recording disabled');
+      }
+    } catch (error) {
+      console.error('Failed to stop background recording:', error);
     }
   }
 
@@ -49,6 +103,9 @@ class AudioRecordingService {
         return null;
       }
 
+      // Stop background recording if active
+      await this.stopBackgroundRecording();
+
       await this.recording.stopAndUnloadAsync();
       const uri = this.recording.getURI();
       this.recordingUri = uri;
@@ -70,7 +127,7 @@ class AudioRecordingService {
       }
 
       const base64 = await FileSystem.readAsStringAsync(this.recordingUri, {
-        encoding: FileSystem.EncodingType.Base64,
+        encoding: 'base64',
       });
 
       return base64;
@@ -86,6 +143,19 @@ class AudioRecordingService {
 
   isRecording(): boolean {
     return this.recording !== null;
+  }
+
+  // Cleanup method to remove listeners
+  cleanup() {
+    if (this.appStateSubscription) {
+      this.appStateSubscription.remove();
+      this.appStateSubscription = null;
+    }
+  }
+
+  // Get background recording status
+  isBackgroundRecording(): boolean {
+    return this.isBackgroundRecordingActive;
   }
 }
 
