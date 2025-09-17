@@ -146,14 +146,16 @@ export default function RecordScreen({ route }: any) {
           } as any;
         });
         
-        // Merge with any existing local-only transcripts (e.g., just-recorded items)
-        const backendIds = new Set(formattedTranscripts.map(t => t.id));
-        const localOnly = transcripts.filter(t => !backendIds.has(t.id));
-        const merged = [...localOnly, ...formattedTranscripts]
-          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-
-        setTranscripts(merged);
-        setFilteredTranscripts(merged);
+        // Merge with any existing local-only transcripts using functional state to avoid stale closures
+        setTranscripts(prev => {
+          const backendIds = new Set(formattedTranscripts.map(t => t.id));
+          const localOnly = prev.filter(t => !backendIds.has(t.id));
+          const merged = [...localOnly, ...formattedTranscripts]
+            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+          // Also update filtered to keep UI in sync immediately
+          setFilteredTranscripts(merged);
+          return merged;
+        });
       }
     } catch (error) {
       console.error('Error loading transcripts:', error);
