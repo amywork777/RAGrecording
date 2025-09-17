@@ -122,7 +122,7 @@ export default function RecordScreen({ route }: any) {
 
   const loadTranscriptsFromBackend = async () => {
     try {
-      const recentTranscripts = await APIService.getRecentTranscripts(50);
+      const recentTranscripts = await APIService.getRecentTranscripts(100);
       
       if (recentTranscripts && recentTranscripts.length > 0) {
         const formattedTranscripts: Transcript[] = recentTranscripts.map((t: any) => {
@@ -146,8 +146,14 @@ export default function RecordScreen({ route }: any) {
           } as any;
         });
         
-        setTranscripts(formattedTranscripts);
-        setFilteredTranscripts(formattedTranscripts);
+        // Merge with any existing local-only transcripts (e.g., just-recorded items)
+        const backendIds = new Set(formattedTranscripts.map(t => t.id));
+        const localOnly = transcripts.filter(t => !backendIds.has(t.id));
+        const merged = [...localOnly, ...formattedTranscripts]
+          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+        setTranscripts(merged);
+        setFilteredTranscripts(merged);
       }
     } catch (error) {
       console.error('Error loading transcripts:', error);
@@ -242,6 +248,22 @@ export default function RecordScreen({ route }: any) {
             
             if (response.transcription) {
               console.log('Transcription received:', response.transcription);
+              // Immediately add to UI for fast feedback
+              const immediateTranscript: Transcript = {
+                id: currentRecordingId,
+                text: response.transcription,
+                title: response.title || 'New Recording',
+                summary: response.summary || 'Processing...'
+                  ,
+                timestamp: new Date(),
+                aiTitle: response.title || 'New Recording',
+                aiSummary: response.summary || 'Processing...'
+              } as any;
+
+              setTranscripts(prev => [immediateTranscript, ...prev]);
+              setFilteredTranscripts(prev => [immediateTranscript, ...prev]);
+
+              // Refresh from backend shortly after to fetch persisted metadata
               setTimeout(loadTranscriptsFromBackend, 2000);
             }
           }
