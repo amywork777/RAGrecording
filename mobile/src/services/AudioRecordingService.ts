@@ -1,5 +1,5 @@
 import { Audio } from 'expo-av';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { AppState, AppStateStatus } from 'react-native';
 
 // Background task helpers removed for Expo Go compatibility

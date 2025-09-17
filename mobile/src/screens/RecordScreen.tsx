@@ -20,7 +20,7 @@ import APIService from '../services/APIService';
 import AudioRecordingService from '../services/AudioRecordingService';
 import uuid from 'react-native-uuid';
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { colors, spacing, borderRadius, typography } from '../theme/colors';
 
 const { width } = Dimensions.get('window');
