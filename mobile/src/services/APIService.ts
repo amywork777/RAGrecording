@@ -154,6 +154,15 @@ class APIService {
     return response.json();
   }
 
+  async getDocumentByPath(path: string, collectionName: string = 'ai-wearable-transcripts'): Promise<any> {
+    const url = `${API_BASE_URL}/api/zeroentropy/document-by-path?path=${encodeURIComponent(path)}&collection_name=${encodeURIComponent(collectionName)}`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch document by path: ${response.status} ${response.statusText}`);
+    }
+    return response.json();
+  }
+
   async uploadTextDocument(
     text: string,
     options?: { path?: string; metadata?: Record<string, any>; collectionName?: string }

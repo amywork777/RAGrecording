@@ -99,6 +99,62 @@ router.get('/documents', async (req: Request, res: Response) => {
   }
 });
 
+// Get a single document by path (include content)
+router.get('/document-by-path', async (req: Request, res: Response) => {
+  try {
+    const path = req.query.path as string;
+    const collection_name = (req.query.collection_name as string) || 'ai-wearable-transcripts';
+    if (!path) {
+      return res.status(400).json({ error: 'Missing required query param: path' });
+    }
+
+    const client = getZeroEntropyClient();
+    const docInfo = await client.documents.getInfo({
+      collection_name,
+      path,
+      include_content: true,
+    } as any);
+
+    const doc: any = (docInfo as any).document;
+    if (!doc) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+
+    // Format similar to list endpoint shape
+    const base: any = {
+      id: doc.id,
+      text: doc.content || '',
+      title: doc.metadata?.title || 'Untitled',
+      summary: doc.metadata?.summary || '',
+      timestamp: doc.metadata?.timestamp || new Date().toISOString(),
+      recordingId: doc.metadata?.recordingId || 'unknown',
+      topic: doc.metadata?.topic || '',
+      score: 1.0,
+      path: doc.path,
+      indexStatus: doc.index_status,
+    };
+
+    try {
+      if (SupabaseService.isConfigured()) {
+        const ann = await SupabaseService.fetchLatestAnnotationByPath(collection_name, doc.path);
+        if (ann) {
+          base.aiTitle = ann.title;
+          base.aiSummary = ann.summary;
+        }
+        const supDoc = await SupabaseService.fetchDocumentByPath(collection_name, doc.path);
+        if (supDoc) {
+          base.durationSeconds = supDoc.duration_seconds ?? null;
+        }
+      }
+    } catch {}
+
+    res.json(base);
+  } catch (error: any) {
+    console.error('Error fetching document by path:', error);
+    res.status(500).json({ error: 'Failed to fetch document by path', message: error.message });
+  }
+});
+
 
 // Search documents in ZeroEntropy with GPT-powered answers (semantic search)
 router.post('/search', async (req: Request, res: Response) => {

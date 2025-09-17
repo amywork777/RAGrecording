@@ -265,8 +265,38 @@ export default function RecordScreen({ route }: any) {
               setTranscripts(prev => [immediateTranscript, ...prev]);
               setFilteredTranscripts(prev => [immediateTranscript, ...prev]);
 
-              // Refresh from backend shortly after to fetch persisted metadata
-              setTimeout(loadTranscriptsFromBackend, 2000);
+              // Fetch exact document by path to ensure persistence is reflected
+              if ((response as any)?.path) {
+                try {
+                  const doc = await APIService.getDocumentByPath((response as any).path);
+                  const mapped: Transcript = {
+                    id: doc.id,
+                    text: doc.text,
+                    title: doc.title,
+                    summary: doc.summary,
+                    timestamp: new Date(doc.timestamp),
+                    path: doc.path,
+                    aiTitle: doc.aiTitle || doc.title,
+                    aiSummary: doc.aiSummary || doc.summary,
+                    // @ts-ignore
+                    durationSeconds: doc.durationSeconds ?? doc.duration_seconds ?? null,
+                  } as any;
+                  setTranscripts(prev => {
+                    const without = prev.filter(t => t.id !== currentRecordingId);
+                    return [mapped, ...without];
+                  });
+                  setFilteredTranscripts(prev => {
+                    const without = prev.filter(t => t.id !== currentRecordingId);
+                    return [mapped, ...without];
+                  });
+                } catch (e) {
+                  console.warn('Fetch by path failed, will fallback to list refresh:', (e as any)?.message);
+                  setTimeout(loadTranscriptsFromBackend, 2000);
+                }
+              } else {
+                // Refresh from backend shortly after to fetch persisted metadata
+                setTimeout(loadTranscriptsFromBackend, 2000);
+              }
             }
           }
         }
