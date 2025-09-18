@@ -62,8 +62,8 @@ class TranscriptionService {
 
   // AssemblyAI non-diarized transcription for stable single-speaker routing
   private async transcribeWithAssemblyAIPlain(audioBuffer: Buffer, format: string = 'wav'): Promise<string> {
-    const tempDir = './temp';
-    if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir);
+    const tempDir = process.env.TMPDIR || '/tmp';
+    try { if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir); } catch {}
 
     const fileExt = format === 'wav' ? 'wav' : 'm4a';
     const tempFilePath = path.join(tempDir, `audio_${Date.now()}.${fileExt}`);
@@ -89,10 +89,8 @@ class TranscriptionService {
     try {
       console.log(`Transcribing with AssemblyAI (diarized), size: ${audioBuffer.length}, speakersExpected: ${speakersExpected ?? 'auto'}`);
       
-      const tempDir = './temp';
-      if (!fs.existsSync(tempDir)) {
-        fs.mkdirSync(tempDir);
-      }
+      const tempDir = process.env.TMPDIR || '/tmp';
+      try { if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir); } catch {}
       
       const fileExt = format === 'wav' ? 'wav' : 'm4a';
       const tempFilePath = path.join(tempDir, `audio_${Date.now()}.${fileExt}`);
@@ -177,8 +175,8 @@ class TranscriptionService {
   // Active Whisper fallback method
   private async transcribeWithWhisper(audioBuffer: Buffer, format: string = 'wav'): Promise<string> {
     try {
-      const tempDir = './temp';
-      if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir);
+      const tempDir = process.env.TMPDIR || '/tmp';
+      try { if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir); } catch {}
       const fileExt = format === 'wav' ? 'wav' : 'm4a';
       const tempFilePath = path.join(tempDir, `audio_${Date.now()}.${fileExt}`);
       fs.writeFileSync(tempFilePath, audioBuffer);
