@@ -787,6 +787,7 @@ export default function RecordScreen({ route }: any) {
         <View style={styles.modalBackdrop}>
           <View style={styles.modalContent}>
             <Text style={styles.reportTitle}>Select a device</Text>
+            <Text style={styles.reportBody}>Scanning for Omi devices (Friend…, Omi…, DevKit…).</Text>
             <ScrollView style={{ maxHeight: 260 }}>
               {nearbyDevices.length === 0 ? (
                 <Text style={styles.reportBody}>No devices found. Make sure your Omi is on and nearby.</Text>

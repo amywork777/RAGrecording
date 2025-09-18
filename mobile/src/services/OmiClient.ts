@@ -35,18 +35,19 @@ export class OmiClient {
         if (state !== 'PoweredOn') return;
         sub.remove();
         const timer = setTimeout(() => {
-          this.manager.stopDeviceScan();
+          try { this.manager.stopDeviceScan(); } catch {}
           reject(new Error('Scan timeout'));
         }, timeoutMs);
 
-        // Filter by Omi service to improve discovery reliability on iOS
-        this.manager.startDeviceScan([OMI_SERVICE], { allowDuplicates: false }, async (error, dev) => {
+        // Scan broadly; match likely Omi names to support devices named "Friend (...)" or "Omi DevKit2 (...)"
+        this.manager.startDeviceScan(null, { allowDuplicates: false }, async (error, dev) => {
           if (error) { clearTimeout(timer); reject(error); return; }
           if (!dev) return;
           const name = (dev.name ?? '').toLowerCase();
-          if (!name.includes('omi')) return;
+          const isOmiLike = name.includes('omi') || name.includes('friend') || name.includes('devkit');
+          if (!isOmiLike) return;
 
-          this.manager.stopDeviceScan();
+          try { this.manager.stopDeviceScan(); } catch {}
           clearTimeout(timer);
           try {
             this.device = await dev.connect();
@@ -66,7 +67,7 @@ export class OmiClient {
       const sub = this.manager.onStateChange((state) => {
         if (state !== 'PoweredOn') return;
         sub.remove();
-        const services = omiOnly ? [OMI_SERVICE] : null;
+        const services = null; // scan broadly; we'll name-filter below
         const timer = setTimeout(() => {
           try { this.manager.stopDeviceScan(); } catch {}
           resolve(Array.from(results.values()));
@@ -80,7 +81,8 @@ export class OmiClient {
           }
           if (!dev) return;
           const name = (dev.name ?? '').toLowerCase();
-          if (omiOnly && !name.includes('omi')) return;
+          const isOmiLike = name.includes('omi') || name.includes('friend') || name.includes('devkit');
+          if (omiOnly && !isOmiLike) return;
           if (!results.has(dev.id)) {
             results.set(dev.id, { id: dev.id, name: dev.name ?? null });
           }
