@@ -13,6 +13,7 @@ import {
   TextInput,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useIsFocused } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import BLEService from '../services/BLEService';
@@ -60,6 +61,8 @@ export default function RecordScreen({ route }: any) {
   const scrollViewRef = useRef<ScrollView>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredTranscripts, setFilteredTranscripts] = useState<Transcript[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+  const isFocused = useIsFocused();
 
   useEffect(() => {
     BLEService.on('deviceConnected', handleDeviceConnected);
@@ -79,6 +82,13 @@ export default function RecordScreen({ route }: any) {
       if (intervalId) clearInterval(intervalId);
     };
   }, [currentRecordingId]);
+
+  // Reload when screen becomes focused
+  useEffect(() => {
+    if (isFocused) {
+      loadTranscriptsFromBackend();
+    }
+  }, [isFocused]);
 
   // Handle navigation from Chat screen
   useEffect(() => {
@@ -134,7 +144,7 @@ export default function RecordScreen({ route }: any) {
 
   const loadTranscriptsFromBackend = async () => {
     try {
-      const recentTranscripts = await APIService.getRecentTranscripts(100);
+      const recentTranscripts = await APIService.getRecentTranscripts(500);
       
       if (recentTranscripts && recentTranscripts.length > 0) {
         const formattedTranscripts: Transcript[] = recentTranscripts.map((t: any) => {
@@ -157,17 +167,9 @@ export default function RecordScreen({ route }: any) {
             durationSeconds: t.durationSeconds ?? t.duration_seconds ?? null,
           } as any;
         });
-        
-        // Merge with any existing local-only transcripts using functional state to avoid stale closures
-        setTranscripts(prev => {
-          const backendIds = new Set(formattedTranscripts.map(t => t.id));
-          const localOnly = prev.filter(t => !backendIds.has(t.id));
-          const merged = [...localOnly, ...formattedTranscripts]
-            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-          // Also update filtered to keep UI in sync immediately
-          setFilteredTranscripts(merged);
-          return merged;
-        });
+        const sorted = formattedTranscripts.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        setTranscripts(sorted);
+        setFilteredTranscripts(sorted);
       }
     } catch (error) {
       console.error('Error loading transcripts:', error);
@@ -248,6 +250,7 @@ export default function RecordScreen({ route }: any) {
         } as any;
         setTranscripts(prev => [newTranscript, ...prev]);
         setFilteredTranscripts(prev => [newTranscript, ...prev]);
+        setTimeout(loadTranscriptsFromBackend, 1500);
       }
     } catch (error) {
       console.error('Error processing BLE audio chunk:', error);
@@ -687,6 +690,16 @@ export default function RecordScreen({ route }: any) {
             ref={scrollViewRef}
             style={styles.transcriptsList}
             showsVerticalScrollIndicator={false}
+            refreshControl={
+              // @ts-ignore
+              <import('react-native').RefreshControl
+                refreshing={refreshing}
+                onRefresh={async () => {
+                  try { setRefreshing(true); await loadTranscriptsFromBackend(); } finally { setRefreshing(false); }
+                }}
+                tintColor={colors.primary.main}
+              />
+            }
           >
             {filteredTranscripts.length === 0 ? (
               <View style={styles.emptyState}>
