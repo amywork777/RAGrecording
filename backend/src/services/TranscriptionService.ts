@@ -4,19 +4,25 @@ import fs from 'fs';
 import path from 'path';
 
 class TranscriptionService {
-  private openai: OpenAI;
+  private openai: OpenAI | null = null;
   private assemblyai: AssemblyAI;
 
   constructor() {
-    // OpenAI for LLM-based title/summary and speaker-count classification
-    this.openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
-    
+    // Delay OpenAI client creation until actually used to avoid crashing when key is missing
     // AssemblyAI for audio transcription + diarization (audio-based speaker detection)
     this.assemblyai = new AssemblyAI({
       apiKey: process.env.ASSEMBLYAI_API_KEY || '',
     });
+  }
+
+  private getOpenAI(): OpenAI {
+    if (this.openai) return this.openai;
+    const key = process.env.OPENAI_API_KEY;
+    if (!key) {
+      throw new Error('OPENAI_API_KEY missing');
+    }
+    this.openai = new OpenAI({ apiKey: key });
+    return this.openai;
   }
 
   // Main entry: first non-diarized pass → LLM classify (single vs multi) →
@@ -177,7 +183,8 @@ class TranscriptionService {
       const tempFilePath = path.join(tempDir, `audio_${Date.now()}.${fileExt}`);
       fs.writeFileSync(tempFilePath, audioBuffer);
 
-      const transcription = await this.openai.audio.transcriptions.create({
+      const openai = this.getOpenAI();
+      const transcription = await openai.audio.transcriptions.create({
         file: fs.createReadStream(tempFilePath),
         model: 'whisper-1',
         language: 'en',
@@ -214,7 +221,8 @@ class TranscriptionService {
       if (transcription.length < 50) {
         return { title: 'Brief Note', summary: transcription.substring(0, 100) };
       }
-      const completion = await this.openai.chat.completions.create({
+      const openai = this.getOpenAI();
+      const completion = await openai.chat.completions.create({
         model: 'gpt-3.5-turbo',
         messages: [
           { role: 'system', content: 'You are a helpful assistant that creates concise titles and summaries for transcribed conversations or notes.' },
@@ -244,7 +252,8 @@ class TranscriptionService {
   private async classifySingleVsMulti(text: string): Promise<boolean> {
     try {
       if (!text || text.trim().length < 50) return false; // short content → likely single
-      const completion = await this.openai.chat.completions.create({
+      const openai = this.getOpenAI();
+      const completion = await openai.chat.completions.create({
         model: 'gpt-3.5-turbo',
         temperature: 0,
         max_tokens: 10,
