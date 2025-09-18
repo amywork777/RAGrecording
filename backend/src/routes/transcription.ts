@@ -14,7 +14,17 @@ const getZeroEntropyClient = () => {
   if (!apiKey || !apiKey.startsWith('ze_')) {
     throw new Error('ZeroEntropy API key not configured');
   }
-  return new ZeroEntropy({ apiKey });
+  const base_url = (process.env.ZEROENTROPY_BASE_URL || 'https://api.zeroentropy.dev/v1').trim();
+  return new ZeroEntropy({ apiKey, base_url } as any);
+};
+
+// Ensure collection exists (create if missing)
+const ensureCollectionExists = async (client: any, collection_name: string) => {
+  try {
+    await client.collections.add({ collection_name } as any);
+  } catch {
+    // Ignore if already exists or if API rejects duplicate creation
+  }
 };
 
 router.post('/transcribe', upload.single('audio'), async (req: Request, res: Response) => {
@@ -47,6 +57,7 @@ router.post('/transcribe', upload.single('audio'), async (req: Request, res: Res
     const client = getZeroEntropyClient();
     const collection_name = 'ai-wearable-transcripts';
     const path = `mobile/recordings/${Date.now()}_${(recordingId || 'rec')}.txt`;
+    await ensureCollectionExists(client, collection_name);
     const zeResponse = await client.documents.add({
       collection_name,
       path,
@@ -61,6 +72,24 @@ router.post('/transcribe', upload.single('audio'), async (req: Request, res: Res
     } as any);
 
     console.log('ZeroEntropy add result:', zeResponse);
+
+    // Best-effort: Poll until the document is indexed (or timeout)
+    let indexStatus: string | null = null;
+    try {
+      for (let i = 0; i < 10; i++) { // ~10s
+        const info: any = await client.documents.getInfo({
+          collection_name,
+          path,
+          include_content: false,
+        } as any);
+        indexStatus = info?.document?.index_status || null;
+        if (indexStatus === 'indexed') break;
+        await new Promise(r => setTimeout(r, 1000));
+      }
+      console.log(`ZeroEntropy index_status for ${path}:`, indexStatus);
+    } catch (e) {
+      console.warn('ZeroEntropy indexing poll failed:', (e as any)?.message);
+    }
 
     // Fire-and-forget: upsert into Supabase, then write latest AI title/summary
     (async () => {
@@ -98,6 +127,7 @@ router.post('/transcribe', upload.single('audio'), async (req: Request, res: Res
       collection_name,
       recordingId,
       timestamp: new Date().toISOString(),
+      index_status: indexStatus,
       hasDiarization: result.transcription.includes('Speaker '), // Check if diarization was applied
     });
   } catch (error) {
@@ -122,6 +152,7 @@ router.post('/transcribe/batch', upload.array('audio', 10), async (req: Request,
     const client = getZeroEntropyClient();
     const collection_name = 'ai-wearable-transcripts';
     const path = `mobile/recordings/${Date.now()}_${(recordingId || 'rec')}_batch.txt`;
+    await ensureCollectionExists(client, collection_name);
     const zeResponse = await client.documents.add({
       collection_name,
       path,
