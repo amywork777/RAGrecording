@@ -50,19 +50,8 @@ class BLEService {
   }
 
   async scanForDevices(): Promise<DeviceInfo[]> {
-    // Minimal implementation: attempt to find and connect to Omi immediately
-    try {
-      const dev = await this.omi.scanAndConnect();
-      this.connectedDevice = { id: dev.id, name: dev.name || 'Omi', connected: true };
-      this.emit('deviceConnected', this.connectedDevice);
-      this.codec = await this.omi.readCodecType();
-      this.sampleRate = (this.codec === 10 || this.codec === 11) ? 8000 : 16000;
-      this.emit('codecChanged', this.codec);
-      return [this.connectedDevice];
-    } catch (e) {
-      console.error('BLE scan/connect failed:', e);
-      return [];
-    }
+    const list = await this.omi.scanForDevices(8000, true);
+    return list.map(d => ({ id: d.id, name: d.name || 'Unknown', connected: false }));
   }
 
   async scanAndConnect(): Promise<void> {
@@ -83,6 +72,21 @@ class BLEService {
       this.emit('codecChanged', this.codec);
     } catch (e) {
       console.error('[BLE] Failed to connect:', e);
+      throw e;
+    }
+  }
+
+  async connectToDeviceId(deviceId: string): Promise<void> {
+    try {
+      console.log('[BLE] connecting by id', deviceId);
+      const dev = await this.omi.connectById(deviceId);
+      this.connectedDevice = { id: dev.id, name: dev.name || 'Omi', connected: true };
+      this.emit('deviceConnected', this.connectedDevice);
+      this.codec = await this.omi.readCodecType();
+      this.sampleRate = (this.codec === 10 || this.codec === 11) ? 8000 : 16000;
+      this.emit('codecChanged', this.codec);
+    } catch (e) {
+      console.error('[BLE] Failed to connect by id:', e);
       throw e;
     }
   }

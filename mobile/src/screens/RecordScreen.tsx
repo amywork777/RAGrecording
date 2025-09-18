@@ -46,6 +46,8 @@ export default function RecordScreen({ route }: any) {
   const [bleCodec, setBleCodec] = useState<number | null>(null);
   const [bleStreaming, setBleStreaming] = useState(false);
   const [lastFrameAt, setLastFrameAt] = useState<number | null>(null);
+  const [devicePickerVisible, setDevicePickerVisible] = useState(false);
+  const [nearbyDevices, setNearbyDevices] = useState<Array<{ id: string; name: string }>>([]);
   const [transcripts, setTranscripts] = useState<Transcript[]>([]);
   const [currentRecordingId, setCurrentRecordingId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
@@ -536,7 +538,9 @@ export default function RecordScreen({ route }: any) {
                     return;
                   }
                   setIsBleConnecting(true);
-                  await BLEService.scanAndConnect();
+                  const list = await BLEService.scanForDevices();
+                  setNearbyDevices(list);
+                  setDevicePickerVisible(true);
                 } catch (e: any) {
                   Alert.alert('Bluetooth', e?.message || 'Failed to connect. Make sure the device is on and nearby.');
                 } finally {
@@ -778,7 +782,44 @@ export default function RecordScreen({ route }: any) {
         </View>
       </LinearGradient>
 
-      {/* Modal removed; full report shown inline on expand */}
+      {/* Device Picker Modal */}
+      {devicePickerVisible && (
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalContent}>
+            <Text style={styles.reportTitle}>Select a device</Text>
+            <ScrollView style={{ maxHeight: 260 }}>
+              {nearbyDevices.length === 0 ? (
+                <Text style={styles.reportBody}>No devices found. Make sure your Omi is on and nearby.</Text>
+              ) : (
+                nearbyDevices.map(d => (
+                  <TouchableOpacity
+                    key={d.id}
+                    style={{ paddingVertical: 10 }}
+                    onPress={async () => {
+                      try {
+                        setDevicePickerVisible(false);
+                        setIsBleConnecting(true);
+                        await BLEService.connectToDeviceId(d.id);
+                      } catch (e: any) {
+                        Alert.alert('Bluetooth', e?.message || 'Failed to connect to device.');
+                      } finally {
+                        setIsBleConnecting(false);
+                      }
+                    }}
+                  >
+                    <Text style={styles.reportBody}>{d.name || 'Unknown'}
+                      <Text style={{ color: colors.text.disabled }}>  {d.id.slice(0, 6)}…</Text>
+                    </Text>
+                  </TouchableOpacity>
+                ))
+              )}
+            </ScrollView>
+            <TouchableOpacity onPress={() => setDevicePickerVisible(false)} style={styles.closeButton}>
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }

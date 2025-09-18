@@ -59,6 +59,45 @@ export class OmiClient {
     });
   }
 
+  async scanForDevices(timeoutMs = 8000, omiOnly = true): Promise<Array<{ id: string; name: string | null }>> {
+    await this.ensureAndroidPermissions();
+    return new Promise((resolve, reject) => {
+      const results = new Map<string, { id: string; name: string | null }>();
+      const sub = this.manager.onStateChange((state) => {
+        if (state !== 'PoweredOn') return;
+        sub.remove();
+        const services = omiOnly ? [OMI_SERVICE] : null;
+        const timer = setTimeout(() => {
+          try { this.manager.stopDeviceScan(); } catch {}
+          resolve(Array.from(results.values()));
+        }, timeoutMs);
+        this.manager.startDeviceScan(services as any, { allowDuplicates: false }, (error, dev) => {
+          if (error) {
+            clearTimeout(timer);
+            try { this.manager.stopDeviceScan(); } catch {}
+            reject(error);
+            return;
+          }
+          if (!dev) return;
+          const name = (dev.name ?? '').toLowerCase();
+          if (omiOnly && !name.includes('omi')) return;
+          if (!results.has(dev.id)) {
+            results.set(dev.id, { id: dev.id, name: dev.name ?? null });
+          }
+        });
+      }, true);
+    });
+  }
+
+  async connectById(deviceId: string): Promise<Device> {
+    await this.ensureAndroidPermissions();
+    const dev = await this.manager.connectToDevice(deviceId);
+    this.device = dev;
+    try { await this.device.requestMTU(185); } catch {}
+    await this.device.discoverAllServicesAndCharacteristics();
+    return this.device;
+  }
+
   async readCodecType(): Promise<number> {
     if (!this.device) throw new Error('Not connected');
     const c = await this.device.readCharacteristicForService(OMI_SERVICE, OMI_CODEC_CHAR);
