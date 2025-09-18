@@ -11,7 +11,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 // Initialize ZeroEntropy client
 const getZeroEntropyClient = () => {
-  const apiKey = process.env.ZEROENTROPY_API_KEY;
+  const apiKey = (process.env.ZEROENTROPY_API_KEY || '').trim();
   if (!apiKey || !apiKey.startsWith('ze_')) {
     throw new Error('ZeroEntropy API key not configured');
   }

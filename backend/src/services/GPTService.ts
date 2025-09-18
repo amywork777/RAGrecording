@@ -1,12 +1,16 @@
 import OpenAI from 'openai';
 
 class GPTService {
-  private openai: OpenAI;
+  private openai: OpenAI | null = null;
 
-  constructor() {
-    this.openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
+  constructor() {}
+
+  private getOpenAI(): OpenAI {
+    if (this.openai) return this.openai;
+    const key = process.env.OPENAI_API_KEY;
+    if (!key) throw new Error('OPENAI_API_KEY missing');
+    this.openai = new OpenAI({ apiKey: key });
+    return this.openai;
   }
 
   async generateAnswer(query: string, context: any[]): Promise<string> {
@@ -35,7 +39,8 @@ Please provide a helpful answer based on the above context.`;
 
       console.log(`Generating GPT answer for query: "${query}" with ${context.length} context documents`);
 
-      const completion = await this.openai.chat.completions.create({
+      const openai = this.getOpenAI();
+      const completion = await openai.chat.completions.create({
         model: 'gpt-3.5-turbo',
         messages: [
           { role: 'system', content: systemPrompt },
@@ -106,7 +111,8 @@ Rules:
       console.log(`Context documents: ${context.length}`);
       console.log(`Query: "${query}"`);
 
-      const completion = await this.openai.chat.completions.create({
+      const openai = this.getOpenAI();
+      const completion = await openai.chat.completions.create({
         model: 'gpt-3.5-turbo',
         messages,
         temperature: 0.3, // Lower temperature for more consistent, less creative responses
@@ -170,7 +176,8 @@ ${transcriptText}
 
 Provide a brief summary highlighting the main topics and key information.`;
 
-      const completion = await this.openai.chat.completions.create({
+      const openai = this.getOpenAI();
+      const completion = await openai.chat.completions.create({
         model: 'gpt-3.5-turbo',
         messages: [
           { 

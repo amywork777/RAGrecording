@@ -25,8 +25,8 @@ class ZeroEntropyService {
   private useMockData = true; // Toggle for testing
 
   constructor() {
-    this.apiKey = process.env.ZEROENTROPY_API_KEY || '';
-    this.projectId = process.env.ZEROENTROPY_PROJECT_ID || '';
+    this.apiKey = (process.env.ZEROENTROPY_API_KEY || '').trim();
+    this.projectId = (process.env.ZEROENTROPY_PROJECT_ID || '').trim();
   }
 
   async storeDocument(text: string, metadata: any): Promise<string> {
