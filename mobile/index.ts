@@ -1,4 +1,8 @@
 import { registerRootComponent } from 'expo';
+import { Buffer } from 'buffer';
+
+// Polyfill Buffer for BLE/base64 utilities
+(global as any).Buffer = (global as any).Buffer || Buffer;
 
 import App from './App';
 

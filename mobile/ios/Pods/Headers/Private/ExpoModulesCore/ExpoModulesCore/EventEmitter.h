@@ -1,1 +1,1 @@
-../../../../../../node_modules/expo-modules-core/common/cpp/EventEmitter.h
+../../../../../../node_modules/expo/node_modules/expo-modules-core/common/cpp/EventEmitter.h

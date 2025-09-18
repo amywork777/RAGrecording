@@ -32,6 +32,12 @@ class RNGestureHandlerButtonProps final : public ViewProps {
   Float borderWidth{0.0};
   SharedColor borderColor{};
   std::string borderStyle{"solid"};
+
+  #ifdef RN_SERIALIZABLE_STATE
+  ComponentName getDiffPropsImplementationTarget() const override;
+
+  folly::dynamic getDiffProps(const Props* prevProps) const override;
+  #endif
 };
 
 class RNGestureHandlerRootViewProps final : public ViewProps {
@@ -42,6 +48,12 @@ class RNGestureHandlerRootViewProps final : public ViewProps {
 #pragma mark - Props
 
   
+
+  #ifdef RN_SERIALIZABLE_STATE
+  ComponentName getDiffPropsImplementationTarget() const override;
+
+  folly::dynamic getDiffProps(const Props* prevProps) const override;
+  #endif
 };
 
 } // namespace facebook::react

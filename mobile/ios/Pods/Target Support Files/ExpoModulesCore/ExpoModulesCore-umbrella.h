@@ -52,6 +52,7 @@
 #import "ExpoModulesCore/ExpoModulesHostObject.h"
 #import "ExpoModulesCore/EXRawJavaScriptFunction.h"
 #import "ExpoModulesCore/EXSharedObjectUtils.h"
+#import "ExpoModulesCore/EXStringUtils.h"
 #import "ExpoModulesCore/EXBridgeModule.h"
 #import "ExpoModulesCore/EXExportedModule.h"
 #import "ExpoModulesCore/EXSingletonModule.h"

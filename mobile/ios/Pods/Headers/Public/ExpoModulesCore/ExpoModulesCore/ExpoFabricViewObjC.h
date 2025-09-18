@@ -1,1 +1,1 @@
-../../../../../../node_modules/expo-modules-core/ios/Fabric/ExpoFabricViewObjC.h
+../../../../../../node_modules/expo/node_modules/expo-modules-core/ios/Fabric/ExpoFabricViewObjC.h

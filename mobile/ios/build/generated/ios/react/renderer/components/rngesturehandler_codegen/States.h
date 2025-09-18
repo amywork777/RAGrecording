@@ -8,34 +8,15 @@
  */
 #pragma once
 
-#ifdef ANDROID
+#include <react/renderer/core/StateData.h>
+#ifdef RN_SERIALIZABLE_STATE
 #include <folly/dynamic.h>
 #endif
 
 namespace facebook::react {
 
-class RNGestureHandlerButtonState {
-public:
-  RNGestureHandlerButtonState() = default;
+using RNGestureHandlerButtonState = StateData;
 
-#ifdef ANDROID
-  RNGestureHandlerButtonState(RNGestureHandlerButtonState const &previousState, folly::dynamic data){};
-  folly::dynamic getDynamic() const {
-    return {};
-  };
-#endif
-};
-
-class RNGestureHandlerRootViewState {
-public:
-  RNGestureHandlerRootViewState() = default;
-
-#ifdef ANDROID
-  RNGestureHandlerRootViewState(RNGestureHandlerRootViewState const &previousState, folly::dynamic data){};
-  folly::dynamic getDynamic() const {
-    return {};
-  };
-#endif
-};
+using RNGestureHandlerRootViewState = StateData;
 
 } // namespace facebook::react

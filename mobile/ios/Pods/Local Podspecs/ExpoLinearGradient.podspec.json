@@ -1,6 +1,6 @@
 {
   "name": "ExpoLinearGradient",
-  "version": "14.1.5",
+  "version": "15.0.7",
   "summary": "Provides a React component that renders a gradient view.",
   "description": "Provides a React component that renders a gradient view.",
   "license": "MIT",
@@ -10,7 +10,7 @@
     "ios": "15.1",
     "tvos": "15.1"
   },
-  "swift_versions": "5.4",
+  "swift_versions": "5.9",
   "source": {
     "git": "https://github.com/expo/expo.git"
   },
@@ -23,5 +23,5 @@
     "SWIFT_COMPILATION_MODE": "wholemodule"
   },
   "source_files": "**/*.{h,m,swift}",
-  "swift_version": "5.4"
+  "swift_version": "5.9"
 }

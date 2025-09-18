@@ -1,6 +1,6 @@
 {
   "name": "ExpoFileSystem",
-  "version": "18.1.11",
+  "version": "19.0.14",
   "summary": "Provides access to the local file system on the device.",
   "description": "Provides access to the local file system on the device.",
   "license": "MIT",
@@ -11,7 +11,7 @@
     "osx": "11.0",
     "tvos": "15.1"
   },
-  "swift_versions": "5.4",
+  "swift_versions": "5.9",
   "source": {
     "git": "https://github.com/expo/expo.git"
   },
@@ -28,16 +28,5 @@
     ]
   },
   "source_files": "**/*.{h,m,swift}",
-  "exclude_files": "Tests/",
-  "testspecs": [
-    {
-      "name": "Tests",
-      "test_type": "unit",
-      "dependencies": {
-        "ExpoModulesTestCore": []
-      },
-      "source_files": "Tests/**/*.{m,swift}"
-    }
-  ],
-  "swift_version": "5.4"
+  "swift_version": "5.9"
 }

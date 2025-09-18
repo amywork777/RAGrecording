@@ -13,26 +13,26 @@
 
 namespace facebook::react {
 
-void RNCSafeAreaProviderEventEmitter::onInsetsChange(OnInsetsChange $event) const {
-  dispatchEvent("insetsChange", [$event=std::move($event)](jsi::Runtime &runtime) {
-    auto $payload = jsi::Object(runtime);
+void RNCSafeAreaProviderEventEmitter::onInsetsChange(OnInsetsChange event) const {
+  dispatchEvent("insetsChange", [event=std::move(event)](jsi::Runtime &runtime) {
+    auto payload = jsi::Object(runtime);
     {
   auto insets = jsi::Object(runtime);
-  insets.setProperty(runtime, "top", $event.insets.top);
-  insets.setProperty(runtime, "right", $event.insets.right);
-  insets.setProperty(runtime, "bottom", $event.insets.bottom);
-  insets.setProperty(runtime, "left", $event.insets.left);
-  $payload.setProperty(runtime, "insets", insets);
+  insets.setProperty(runtime, "top", event.insets.top);
+  insets.setProperty(runtime, "right", event.insets.right);
+  insets.setProperty(runtime, "bottom", event.insets.bottom);
+  insets.setProperty(runtime, "left", event.insets.left);
+  payload.setProperty(runtime, "insets", insets);
 }
 {
   auto frame = jsi::Object(runtime);
-  frame.setProperty(runtime, "x", $event.frame.x);
-  frame.setProperty(runtime, "y", $event.frame.y);
-  frame.setProperty(runtime, "width", $event.frame.width);
-  frame.setProperty(runtime, "height", $event.frame.height);
-  $payload.setProperty(runtime, "frame", frame);
+  frame.setProperty(runtime, "x", event.frame.x);
+  frame.setProperty(runtime, "y", event.frame.y);
+  frame.setProperty(runtime, "width", event.frame.width);
+  frame.setProperty(runtime, "height", event.frame.height);
+  payload.setProperty(runtime, "frame", frame);
 }
-    return $payload;
+    return payload;
   });
 }
 

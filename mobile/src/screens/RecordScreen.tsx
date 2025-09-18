@@ -204,21 +204,27 @@ export default function RecordScreen({ route }: any) {
 
   const handleDeviceConnected = () => {
     setIsConnected(true);
-    Alert.alert('Connected', 'Successfully connected to AI Wearable');
+    try {
+      // Start BLE audio stream automatically and assign a recording id for this session
+      const recId = uuid.v4() as string;
+      setCurrentRecordingId(recId);
+      BLEService.startAudioStream();
+    } catch (e) {}
+    Alert.alert('Connected', 'Successfully connected to Omi');
   };
 
   const handleDeviceDisconnected = () => {
     setIsConnected(false);
+    try { BLEService.stopAudioStream(); } catch {}
     setIsRecording(false);
-    Alert.alert('Disconnected', 'Disconnected from AI Wearable');
+    setCurrentRecordingId('');
+    Alert.alert('Disconnected', 'Disconnected from Omi');
   };
 
-  const handleAudioChunk = async (audioData: ArrayBuffer) => {
+  const handleAudioChunk = async (chunk: { base64Wav: string; sampleRate?: number; codec?: number }) => {
     if (!currentRecordingId) return;
-
     try {
-      const response = await APIService.sendAudioBase64(audioData.toString(), currentRecordingId);
-      
+      const response = await APIService.sendAudioBase64(chunk.base64Wav, currentRecordingId, 'wav');
       if (response.transcription) {
         const newTranscript: Transcript = {
           id: uuid.v4() as string,
@@ -226,12 +232,12 @@ export default function RecordScreen({ route }: any) {
           title: response.title,
           summary: response.summary,
           timestamp: new Date(response.timestamp),
-        };
-        
+        } as any;
         setTranscripts(prev => [newTranscript, ...prev]);
+        setFilteredTranscripts(prev => [newTranscript, ...prev]);
       }
     } catch (error) {
-      console.error('Error processing audio chunk:', error);
+      console.error('Error processing BLE audio chunk:', error);
     }
   };
 
@@ -497,12 +503,26 @@ export default function RecordScreen({ route }: any) {
       >
         <View style={styles.header}>
           <Text style={styles.title}>Welcome to Tai</Text>
-          {isRecording && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <TouchableOpacity
+              style={[styles.iconButton, { marginRight: spacing.xs }]}
+              onPress={() => {
+                if (isConnected) {
+                  BLEService.disconnectDevice();
+                } else {
+                  BLEService.scanAndConnect();
+                }
+              }}
+            >
+              <Ionicons name={isConnected ? 'bluetooth' : 'bluetooth-outline'} size={18} color={isConnected ? colors.primary.main : colors.text.secondary} />
+            </TouchableOpacity>
+            {isRecording && (
             <View style={styles.recordingBadge}>
               <View style={styles.recordingDot} />
               <Text style={styles.recordingTime}>{formatTime(recordingTime)}</Text>
             </View>
-          )}
+            )}
+          </View>
         </View>
 
         <View style={styles.recordContainer}>

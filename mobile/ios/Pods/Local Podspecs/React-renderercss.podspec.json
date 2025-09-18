@@ -1,6 +1,6 @@
 {
   "name": "React-renderercss",
-  "version": "0.79.5",
+  "version": "0.81.4",
   "summary": "Fabric CSS parser and data types",
   "homepage": "https://reactnative.dev/",
   "license": "MIT",
@@ -10,14 +10,14 @@
   },
   "source": {
     "git": "https://github.com/facebook/react-native.git",
-    "tag": "v0.79.5"
+    "tag": "v0.81.4"
   },
-  "source_files": "**/*.{cpp,h}",
+  "source_files": "**/*.h",
   "header_dir": "react/renderer/css",
   "exclude_files": "tests",
   "pod_target_xcconfig": {
     "CLANG_CXX_LANGUAGE_STANDARD": "c++20",
-    "HEADER_SEARCH_PATHS": "\"${PODS_CONFIGURATION_BUILD_DIR}/React-debug/React_debug.framework/Headers\" \"${PODS_CONFIGURATION_BUILD_DIR}/React-utils/React_utils.framework/Headers\"",
+    "HEADER_SEARCH_PATHS": "\"${PODS_ROOT}/React-debug\" \"${PODS_ROOT}/React-utils\"",
     "DEFINES_MODULE": "YES"
   },
   "dependencies": {

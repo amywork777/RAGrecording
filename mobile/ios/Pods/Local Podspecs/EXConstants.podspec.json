@@ -1,6 +1,6 @@
 {
   "name": "EXConstants",
-  "version": "17.1.7",
+  "version": "18.0.9",
   "summary": "Provides system information that remains constant throughout the lifetime of your app.",
   "description": "Provides system information that remains constant throughout the lifetime of your app.",
   "license": "MIT",
@@ -11,7 +11,7 @@
     "osx": "11.0",
     "tvos": "15.1"
   },
-  "swift_versions": "5.4",
+  "swift_versions": "5.9",
   "source": {
     "git": "https://github.com/expo/expo.git"
   },
@@ -36,5 +36,5 @@
       "PrivacyInfo.xcprivacy"
     ]
   },
-  "swift_version": "5.4"
+  "swift_version": "5.9"
 }

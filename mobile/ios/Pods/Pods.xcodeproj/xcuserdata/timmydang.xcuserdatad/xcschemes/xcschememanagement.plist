@@ -4,11 +4,6 @@
 <dict>
 	<key>SchemeUserState</key>
 	<dict>
-		<key>DoubleConversion.xcscheme</key>
-		<dict>
-			<key>isShown</key>
-			<false/>
-		</dict>
 		<key>EXAV.xcscheme</key>
 		<dict>
 			<key>isShown</key>
@@ -25,31 +20,6 @@
 			<false/>
 		</dict>
 		<key>EXConstants.xcscheme</key>
-		<dict>
-			<key>isShown</key>
-			<false/>
-		</dict>
-		<key>EXJSONUtils.xcscheme</key>
-		<dict>
-			<key>isShown</key>
-			<false/>
-		</dict>
-		<key>EXManifests.xcscheme</key>
-		<dict>
-			<key>isShown</key>
-			<false/>
-		</dict>
-		<key>EXTaskManager-ExpoTaskManager_privacy.xcscheme</key>
-		<dict>
-			<key>isShown</key>
-			<false/>
-		</dict>
-		<key>EXTaskManager.xcscheme</key>
-		<dict>
-			<key>isShown</key>
-			<false/>
-		</dict>
-		<key>EXUpdatesInterface.xcscheme</key>
 		<dict>
 			<key>isShown</key>
 			<false/>
@@ -104,11 +74,6 @@
 			<key>isShown</key>
 			<false/>
 		</dict>
-		<key>ExpoSecureStore.xcscheme</key>
-		<dict>
-			<key>isShown</key>
-			<false/>
-		</dict>
 		<key>FBLazyVector.xcscheme</key>
 		<dict>
 			<key>isShown</key>
@@ -119,17 +84,7 @@
 			<key>isShown</key>
 			<false/>
 		</dict>
-		<key>Pods-Tai.xcscheme</key>
-		<dict>
-			<key>isShown</key>
-			<false/>
-		</dict>
-		<key>RCT-Folly-RCT-Folly_privacy.xcscheme</key>
-		<dict>
-			<key>isShown</key>
-			<false/>
-		</dict>
-		<key>RCT-Folly.xcscheme</key>
+		<key>Pods-mobile.xcscheme</key>
 		<dict>
 			<key>isShown</key>
 			<false/>
@@ -145,16 +100,6 @@
 			<false/>
 		</dict>
 		<key>RCTTypeSafety.xcscheme</key>
-		<dict>
-			<key>isShown</key>
-			<false/>
-		</dict>
-		<key>RNCAsyncStorage-RNCAsyncStorage_resources.xcscheme</key>
-		<dict>
-			<key>isShown</key>
-			<false/>
-		</dict>
-		<key>RNCAsyncStorage.xcscheme</key>
 		<dict>
 			<key>isShown</key>
 			<false/>
@@ -179,7 +124,17 @@
 			<key>isShown</key>
 			<false/>
 		</dict>
+		<key>RNWorklets.xcscheme</key>
+		<dict>
+			<key>isShown</key>
+			<false/>
+		</dict>
 		<key>React-Core-React-Core_privacy.xcscheme</key>
+		<dict>
+			<key>isShown</key>
+			<false/>
+		</dict>
+		<key>React-Core-prebuilt.xcscheme</key>
 		<dict>
 			<key>isShown</key>
 			<false/>
@@ -379,6 +334,16 @@
 			<key>isShown</key>
 			<false/>
 		</dict>
+		<key>React-jsinspectorcdp.xcscheme</key>
+		<dict>
+			<key>isShown</key>
+			<false/>
+		</dict>
+		<key>React-jsinspectornetwork.xcscheme</key>
+		<dict>
+			<key>isShown</key>
+			<false/>
+		</dict>
 		<key>React-jsinspectortracing.xcscheme</key>
 		<dict>
 			<key>isShown</key>
@@ -434,11 +399,6 @@
 			<key>isShown</key>
 			<false/>
 		</dict>
-		<key>React-rncore.xcscheme</key>
-		<dict>
-			<key>isShown</key>
-			<false/>
-		</dict>
 		<key>React-runtimeexecutor.xcscheme</key>
 		<dict>
 			<key>isShown</key>
@@ -479,77 +439,12 @@
 			<key>isShown</key>
 			<false/>
 		</dict>
-		<key>SocketRocket.xcscheme</key>
-		<dict>
-			<key>isShown</key>
-			<false/>
-		</dict>
-		<key>UMAppLoader.xcscheme</key>
+		<key>ReactNativeDependencies.xcscheme</key>
 		<dict>
 			<key>isShown</key>
 			<false/>
 		</dict>
 		<key>Yoga.xcscheme</key>
-		<dict>
-			<key>isShown</key>
-			<false/>
-		</dict>
-		<key>boost-boost_privacy.xcscheme</key>
-		<dict>
-			<key>isShown</key>
-			<false/>
-		</dict>
-		<key>boost.xcscheme</key>
-		<dict>
-			<key>isShown</key>
-			<false/>
-		</dict>
-		<key>expo-dev-client.xcscheme</key>
-		<dict>
-			<key>isShown</key>
-			<false/>
-		</dict>
-		<key>expo-dev-launcher-EXDevLauncher.xcscheme</key>
-		<dict>
-			<key>isShown</key>
-			<false/>
-		</dict>
-		<key>expo-dev-launcher.xcscheme</key>
-		<dict>
-			<key>isShown</key>
-			<false/>
-		</dict>
-		<key>expo-dev-menu-EXDevMenu.xcscheme</key>
-		<dict>
-			<key>isShown</key>
-			<false/>
-		</dict>
-		<key>expo-dev-menu-interface.xcscheme</key>
-		<dict>
-			<key>isShown</key>
-			<false/>
-		</dict>
-		<key>expo-dev-menu.xcscheme</key>
-		<dict>
-			<key>isShown</key>
-			<false/>
-		</dict>
-		<key>fast_float.xcscheme</key>
-		<dict>
-			<key>isShown</key>
-			<false/>
-		</dict>
-		<key>fmt.xcscheme</key>
-		<dict>
-			<key>isShown</key>
-			<false/>
-		</dict>
-		<key>glog-glog_privacy.xcscheme</key>
-		<dict>
-			<key>isShown</key>
-			<false/>
-		</dict>
-		<key>glog.xcscheme</key>
 		<dict>
 			<key>isShown</key>
 			<false/>

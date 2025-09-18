@@ -1,1 +1,1 @@
-../../../../../../node_modules/expo-modules-core/common/cpp/SharedRef.h
+../../../../../../node_modules/expo/node_modules/expo-modules-core/common/cpp/SharedRef.h

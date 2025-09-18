@@ -13,17 +13,41 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSBluetoothAlwaysUsageDescription": "We use Bluetooth to connect to your Omi wearable.",
+        "NSBluetoothPeripheralUsageDescription": "We use Bluetooth to connect to your Omi wearable.",
+        "UIBackgroundModes": [
+          "bluetooth-central",
+          "audio",
+          "bluetooth-central",
+          "audio"
+        ]
+      },
+      "bundleIdentifier": "com.timmy.amby.mobile"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "BLUETOOTH",
+        "BLUETOOTH_ADMIN",
+        "BLUETOOTH_CONNECT",
+        "BLUETOOTH_SCAN",
+        "ACCESS_FINE_LOCATION",
+        "FOREGROUND_SERVICE"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "de35b464-bbb9-4a65-9f7d-777949ccf704"
+      }
     }
   }
 }

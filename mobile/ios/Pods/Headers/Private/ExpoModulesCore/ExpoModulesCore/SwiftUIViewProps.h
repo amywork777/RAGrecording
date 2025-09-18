@@ -1,1 +1,1 @@
-../../../../../../node_modules/expo-modules-core/ios/Core/Views/SwiftUI/SwiftUIViewProps.h
+../../../../../../node_modules/expo/node_modules/expo-modules-core/ios/Core/Views/SwiftUI/SwiftUIViewProps.h

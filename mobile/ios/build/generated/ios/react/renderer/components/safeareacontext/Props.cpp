@@ -19,15 +19,60 @@ RNCSafeAreaProviderProps::RNCSafeAreaProviderProps(
     const RNCSafeAreaProviderProps &sourceProps,
     const RawProps &rawProps): ViewProps(context, sourceProps, rawProps)
 
+     {}
     
-      {}
+#ifdef RN_SERIALIZABLE_STATE
+ComponentName RNCSafeAreaProviderProps::getDiffPropsImplementationTarget() const {
+  return "RNCSafeAreaProvider";
+}
+
+folly::dynamic RNCSafeAreaProviderProps::getDiffProps(
+    const Props* prevProps) const {
+  static const auto defaultProps = RNCSafeAreaProviderProps();
+  const RNCSafeAreaProviderProps* oldProps = prevProps == nullptr
+      ? &defaultProps
+      : static_cast<const RNCSafeAreaProviderProps*>(prevProps);
+  if (this == oldProps) {
+    return folly::dynamic::object();
+  }
+  folly::dynamic result = HostPlatformViewProps::getDiffProps(prevProps);
+  
+  return result;
+}
+#endif
 RNCSafeAreaViewProps::RNCSafeAreaViewProps(
     const PropsParserContext &context,
     const RNCSafeAreaViewProps &sourceProps,
     const RawProps &rawProps): ViewProps(context, sourceProps, rawProps),
 
     mode(convertRawProp(context, rawProps, "mode", sourceProps.mode, {RNCSafeAreaViewMode::Padding})),
-    edges(convertRawProp(context, rawProps, "edges", sourceProps.edges, {}))
-      {}
+    edges(convertRawProp(context, rawProps, "edges", sourceProps.edges, {})) {}
+    
+#ifdef RN_SERIALIZABLE_STATE
+ComponentName RNCSafeAreaViewProps::getDiffPropsImplementationTarget() const {
+  return "RNCSafeAreaView";
+}
+
+folly::dynamic RNCSafeAreaViewProps::getDiffProps(
+    const Props* prevProps) const {
+  static const auto defaultProps = RNCSafeAreaViewProps();
+  const RNCSafeAreaViewProps* oldProps = prevProps == nullptr
+      ? &defaultProps
+      : static_cast<const RNCSafeAreaViewProps*>(prevProps);
+  if (this == oldProps) {
+    return folly::dynamic::object();
+  }
+  folly::dynamic result = HostPlatformViewProps::getDiffProps(prevProps);
+  
+  if (mode != oldProps->mode) {
+    result["mode"] = toDynamic(mode);
+  }
+    
+  if (edges != oldProps->edges) {
+    result["edges"] = toDynamic(edges);
+  }
+  return result;
+}
+#endif
 
 } // namespace facebook::react

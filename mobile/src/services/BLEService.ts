@@ -1,4 +1,7 @@
-interface Device {
+import OmiClient from './OmiClient';
+import { muLawToPCM16, pcm16ToWavBase64 } from './AudioUtils';
+
+interface DeviceInfo {
   id: string;
   name: string;
   connected: boolean;
@@ -7,10 +10,15 @@ interface Device {
 type EventCallback = (...args: any[]) => void;
 
 class BLEService {
-  private isStreaming = false;
-  private simulatedDevice: Device | null = null;
-  private audioChunkInterval: NodeJS.Timeout | null = null;
   private listeners: Map<string, EventCallback[]> = new Map();
+  private omi = new OmiClient();
+  private connectedDevice: DeviceInfo | null = null;
+  private isStreaming = false;
+  private codec: number | null = null;
+  private sampleRate: number = 16000;
+  private pcmBuffers: Int16Array[] = [];
+  private lastFlushMs: number = Date.now();
+  private flushIntervalMs: number = 4000; // accumulate ~4s of audio per upload
 
   // Event emitter methods
   on(event: string, callback: EventCallback): void {
@@ -41,90 +49,110 @@ class BLEService {
     this.listeners.clear();
   }
 
-  async scanForDevices(): Promise<Device[]> {
-    console.log('Scanning for BLE devices (simulated)...');
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    return [
-      { id: 'sim-device-1', name: 'AI Wearable (Simulated)', connected: false }
-    ];
+  async scanForDevices(): Promise<DeviceInfo[]> {
+    // Minimal implementation: attempt to find and connect to Omi immediately
+    try {
+      const dev = await this.omi.scanAndConnect();
+      this.connectedDevice = { id: dev.id, name: dev.name || 'Omi', connected: true };
+      this.emit('deviceConnected', this.connectedDevice);
+      this.codec = await this.omi.readCodecType();
+      this.sampleRate = (this.codec === 10 || this.codec === 11) ? 8000 : 16000;
+      this.emit('codecChanged', this.codec);
+      return [this.connectedDevice];
+    } catch (e) {
+      console.error('BLE scan/connect failed:', e);
+      return [];
+    }
   }
 
-  async connectToDevice(deviceId: string): Promise<void> {
-    console.log(`Connecting to device ${deviceId} (simulated)...`);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    this.simulatedDevice = {
-      id: deviceId,
-      name: 'AI Wearable (Simulated)',
-      connected: true
-    };
-    
-    this.emit('deviceConnected', this.simulatedDevice);
+  async scanAndConnect(): Promise<void> {
+    await this.connectToDevice('omi');
+  }
+
+  async connectToDevice(_deviceId: string): Promise<void> {
+    try {
+      const dev = await this.omi.scanAndConnect();
+      this.connectedDevice = { id: dev.id, name: dev.name || 'Omi', connected: true };
+      this.emit('deviceConnected', this.connectedDevice);
+      this.codec = await this.omi.readCodecType();
+      this.sampleRate = (this.codec === 10 || this.codec === 11) ? 8000 : 16000;
+      this.emit('codecChanged', this.codec);
+    } catch (e) {
+      console.error('Failed to connect:', e);
+      throw e;
+    }
   }
 
   async disconnectDevice(): Promise<void> {
-    if (this.simulatedDevice) {
-      console.log('Disconnecting device (simulated)...');
-      this.stopAudioStream();
-      this.simulatedDevice.connected = false;
-      this.emit('deviceDisconnected', this.simulatedDevice);
-      this.simulatedDevice = null;
+    if (this.connectedDevice) {
+      try {
+        this.stopAudioStream();
+      } finally {
+        const prev = this.connectedDevice;
+        this.connectedDevice = null;
+        this.emit('deviceDisconnected', prev);
+      }
     }
   }
 
   startAudioStream(): void {
-    if (!this.simulatedDevice || !this.simulatedDevice.connected) {
+    if (!this.connectedDevice?.connected) {
       throw new Error('No device connected');
     }
-
-    if (this.isStreaming) {
-      return;
+    if (this.isStreaming) return;
+    if (this.codec === 20) {
+      console.warn('Opus codec detected. Implement decoder or switch device to PCM/μ-law.');
     }
 
-    console.log('Starting audio stream (simulated)...');
     this.isStreaming = true;
+    this.pcmBuffers = [];
+    this.lastFlushMs = Date.now();
 
-    this.audioChunkInterval = setInterval(() => {
-      const simulatedAudioChunk = this.generateSimulatedAudioChunk();
-      this.emit('audioChunk', simulatedAudioChunk);
-    }, 1000);
+    this.omi.monitorAudio((_packetNo, payload) => {
+      if (!this.isStreaming) return;
+      let pcm: Int16Array | null = null;
+      if (this.codec === 10 || this.codec === 11) {
+        // μ-law
+        pcm = muLawToPCM16(payload);
+      } else {
+        // assume PCM16
+        if (payload.byteLength % 2 !== 0) return; // corrupted
+        pcm = new Int16Array(payload.buffer, payload.byteOffset, payload.byteLength / 2);
+        pcm = new Int16Array(pcm); // copy to detach from underlying buffer
+      }
+      this.pcmBuffers.push(pcm);
+
+      const now = Date.now();
+      if (now - this.lastFlushMs >= this.flushIntervalMs) {
+        this.flushBufferedPcm();
+        this.lastFlushMs = now;
+      }
+    });
 
     this.emit('streamStarted');
   }
 
   stopAudioStream(): void {
-    if (!this.isStreaming) {
-      return;
-    }
-
-    console.log('Stopping audio stream (simulated)...');
+    if (!this.isStreaming) return;
     this.isStreaming = false;
-
-    if (this.audioChunkInterval) {
-      clearInterval(this.audioChunkInterval);
-      this.audioChunkInterval = null;
-    }
-
+    try { this.omi.stopMonitoring(); } catch {}
+    this.flushBufferedPcm();
     this.emit('streamStopped');
   }
 
-  private generateSimulatedAudioChunk(): ArrayBuffer {
-    const sampleRate = 16000;
-    const duration = 1;
-    const numSamples = sampleRate * duration;
-    const buffer = new ArrayBuffer(numSamples * 2);
-    const view = new Int16Array(buffer);
-
-    for (let i = 0; i < numSamples; i++) {
-      view[i] = Math.floor(Math.random() * 32767 - 16384);
-    }
-
-    return buffer;
+  private flushBufferedPcm() {
+    if (this.pcmBuffers.length === 0) return;
+    const total = this.pcmBuffers.reduce((n, a) => n + a.length, 0);
+    const joined = new Int16Array(total);
+    let off = 0;
+    for (const seg of this.pcmBuffers) { joined.set(seg, off); off += seg.length; }
+    this.pcmBuffers = [];
+    const base64Wav = pcm16ToWavBase64(joined, this.sampleRate);
+    this.emit('audioChunk', { base64Wav, sampleRate: this.sampleRate, codec: this.codec });
   }
 
   isDeviceConnected(): boolean {
-    return this.simulatedDevice !== null && this.simulatedDevice.connected;
+    return this.connectedDevice !== null && this.connectedDevice.connected;
   }
 
   isStreamActive(): boolean {

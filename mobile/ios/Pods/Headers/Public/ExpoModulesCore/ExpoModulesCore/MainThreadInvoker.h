@@ -1,1 +1,1 @@
-../../../../../../node_modules/expo-modules-core/ios/TestUtils/MainThreadInvoker.h
+../../../../../../node_modules/expo/node_modules/expo-modules-core/ios/TestUtils/MainThreadInvoker.h

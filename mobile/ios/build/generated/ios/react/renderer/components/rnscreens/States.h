@@ -8,82 +8,31 @@
  */
 #pragma once
 
-#ifdef ANDROID
+#include <react/renderer/core/StateData.h>
+#ifdef RN_SERIALIZABLE_STATE
 #include <folly/dynamic.h>
 #endif
 
 namespace facebook::react {
 
-class RNSScreenContainerState {
-public:
-  RNSScreenContainerState() = default;
+using RNSBottomTabsScreenState = StateData;
 
-#ifdef ANDROID
-  RNSScreenContainerState(RNSScreenContainerState const &previousState, folly::dynamic data){};
-  folly::dynamic getDynamic() const {
-    return {};
-  };
-#endif
-};
+using RNSScreenStackHostState = StateData;
 
-class RNSScreenContentWrapperState {
-public:
-  RNSScreenContentWrapperState() = default;
+using RNSSplitViewHostState = StateData;
 
-#ifdef ANDROID
-  RNSScreenContentWrapperState(RNSScreenContentWrapperState const &previousState, folly::dynamic data){};
-  folly::dynamic getDynamic() const {
-    return {};
-  };
-#endif
-};
+using RNSStackScreenState = StateData;
 
-class RNSScreenFooterState {
-public:
-  RNSScreenFooterState() = default;
+using RNSScreenContainerState = StateData;
 
-#ifdef ANDROID
-  RNSScreenFooterState(RNSScreenFooterState const &previousState, folly::dynamic data){};
-  folly::dynamic getDynamic() const {
-    return {};
-  };
-#endif
-};
+using RNSScreenContentWrapperState = StateData;
 
-class RNSScreenNavigationContainerState {
-public:
-  RNSScreenNavigationContainerState() = default;
+using RNSScreenFooterState = StateData;
 
-#ifdef ANDROID
-  RNSScreenNavigationContainerState(RNSScreenNavigationContainerState const &previousState, folly::dynamic data){};
-  folly::dynamic getDynamic() const {
-    return {};
-  };
-#endif
-};
+using RNSScreenNavigationContainerState = StateData;
 
-class RNSScreenStackState {
-public:
-  RNSScreenStackState() = default;
+using RNSScreenStackState = StateData;
 
-#ifdef ANDROID
-  RNSScreenStackState(RNSScreenStackState const &previousState, folly::dynamic data){};
-  folly::dynamic getDynamic() const {
-    return {};
-  };
-#endif
-};
-
-class RNSSearchBarState {
-public:
-  RNSSearchBarState() = default;
-
-#ifdef ANDROID
-  RNSSearchBarState(RNSSearchBarState const &previousState, folly::dynamic data){};
-  folly::dynamic getDynamic() const {
-    return {};
-  };
-#endif
-};
+using RNSSearchBarState = StateData;
 
 } // namespace facebook::react

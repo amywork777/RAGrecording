@@ -8,22 +8,13 @@
  */
 #pragma once
 
-#ifdef ANDROID
+#include <react/renderer/core/StateData.h>
+#ifdef RN_SERIALIZABLE_STATE
 #include <folly/dynamic.h>
 #endif
 
 namespace facebook::react {
 
-class RNCSafeAreaProviderState {
-public:
-  RNCSafeAreaProviderState() = default;
-
-#ifdef ANDROID
-  RNCSafeAreaProviderState(RNCSafeAreaProviderState const &previousState, folly::dynamic data){};
-  folly::dynamic getDynamic() const {
-    return {};
-  };
-#endif
-};
+using RNCSafeAreaProviderState = StateData;
 
 } // namespace facebook::react

@@ -1,1 +1,1 @@
-../../../../../../node_modules/expo-modules-core/common/cpp/fabric/ExpoViewComponentDescriptor.h
+../../../../../../node_modules/expo/node_modules/expo-modules-core/common/cpp/fabric/ExpoViewComponentDescriptor.h

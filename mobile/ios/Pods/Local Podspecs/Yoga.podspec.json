@@ -11,7 +11,7 @@
   "authors": "Facebook",
   "source": {
     "git": "https://github.com/facebook/react-native.git",
-    "tag": "v0.79.5"
+    "tag": "v0.81.4"
   },
   "module_name": "yoga",
   "header_dir": "yoga",
@@ -30,7 +30,7 @@
   "platforms": {
     "ios": "15.1"
   },
-  "source_files": "yoga/**/*.{cpp,h}",
+  "source_files": "yoga/**/*.h",
   "header_mappings_dir": "yoga",
   "public_header_files": "yoga/*.h",
   "private_header_files": [

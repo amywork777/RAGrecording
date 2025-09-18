@@ -28,14 +28,91 @@ RNGestureHandlerButtonProps::RNGestureHandlerButtonProps(
     touchSoundDisabled(convertRawProp(context, rawProps, "touchSoundDisabled", sourceProps.touchSoundDisabled, {false})),
     borderWidth(convertRawProp(context, rawProps, "borderWidth", sourceProps.borderWidth, {0.0})),
     borderColor(convertRawProp(context, rawProps, "borderColor", sourceProps.borderColor, {})),
-    borderStyle(convertRawProp(context, rawProps, "borderStyle", sourceProps.borderStyle, {"solid"}))
-      {}
+    borderStyle(convertRawProp(context, rawProps, "borderStyle", sourceProps.borderStyle, {"solid"})) {}
+    
+#ifdef RN_SERIALIZABLE_STATE
+ComponentName RNGestureHandlerButtonProps::getDiffPropsImplementationTarget() const {
+  return "RNGestureHandlerButton";
+}
+
+folly::dynamic RNGestureHandlerButtonProps::getDiffProps(
+    const Props* prevProps) const {
+  static const auto defaultProps = RNGestureHandlerButtonProps();
+  const RNGestureHandlerButtonProps* oldProps = prevProps == nullptr
+      ? &defaultProps
+      : static_cast<const RNGestureHandlerButtonProps*>(prevProps);
+  if (this == oldProps) {
+    return folly::dynamic::object();
+  }
+  folly::dynamic result = HostPlatformViewProps::getDiffProps(prevProps);
+  
+  if (exclusive != oldProps->exclusive) {
+    result["exclusive"] = exclusive;
+  }
+    
+  if (foreground != oldProps->foreground) {
+    result["foreground"] = foreground;
+  }
+    
+  if (borderless != oldProps->borderless) {
+    result["borderless"] = borderless;
+  }
+    
+  if (enabled != oldProps->enabled) {
+    result["enabled"] = enabled;
+  }
+    
+  if (rippleColor != oldProps->rippleColor) {
+    result["rippleColor"] = *rippleColor;
+  }
+    
+  if (rippleRadius != oldProps->rippleRadius) {
+    result["rippleRadius"] = rippleRadius;
+  }
+    
+  if (touchSoundDisabled != oldProps->touchSoundDisabled) {
+    result["touchSoundDisabled"] = touchSoundDisabled;
+  }
+    
+  if ((borderWidth != oldProps->borderWidth) && !(std::isnan(borderWidth) && std::isnan(oldProps->borderWidth))) {
+    result["borderWidth"] = borderWidth;
+  }
+    
+  if (borderColor != oldProps->borderColor) {
+    result["borderColor"] = *borderColor;
+  }
+    
+  if (borderStyle != oldProps->borderStyle) {
+    result["borderStyle"] = borderStyle;
+  }
+  return result;
+}
+#endif
 RNGestureHandlerRootViewProps::RNGestureHandlerRootViewProps(
     const PropsParserContext &context,
     const RNGestureHandlerRootViewProps &sourceProps,
     const RawProps &rawProps): ViewProps(context, sourceProps, rawProps)
 
+     {}
     
-      {}
+#ifdef RN_SERIALIZABLE_STATE
+ComponentName RNGestureHandlerRootViewProps::getDiffPropsImplementationTarget() const {
+  return "RNGestureHandlerRootView";
+}
+
+folly::dynamic RNGestureHandlerRootViewProps::getDiffProps(
+    const Props* prevProps) const {
+  static const auto defaultProps = RNGestureHandlerRootViewProps();
+  const RNGestureHandlerRootViewProps* oldProps = prevProps == nullptr
+      ? &defaultProps
+      : static_cast<const RNGestureHandlerRootViewProps*>(prevProps);
+  if (this == oldProps) {
+    return folly::dynamic::object();
+  }
+  folly::dynamic result = HostPlatformViewProps::getDiffProps(prevProps);
+  
+  return result;
+}
+#endif
 
 } // namespace facebook::react
