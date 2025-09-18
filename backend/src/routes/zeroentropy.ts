@@ -15,7 +15,8 @@ const getZeroEntropyClient = () => {
   if (!apiKey || !apiKey.startsWith('ze_')) {
     throw new Error('ZeroEntropy API key not configured');
   }
-  return new ZeroEntropy({ apiKey });
+  const baseUrl = (process.env.ZEROENTROPY_BASE_URL || 'https://api.zeroentropy.ai/v1').trim();
+  return new ZeroEntropy({ apiKey, base_url: baseUrl } as any);
 };
 
 // Get all documents from ZeroEntropy
