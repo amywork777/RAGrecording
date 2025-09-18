@@ -41,7 +41,11 @@ interface Transcript {
 
 export default function RecordScreen({ route }: any) {
   const [isConnected, setIsConnected] = useState(false);
+  const [isBleConnecting, setIsBleConnecting] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [bleCodec, setBleCodec] = useState<number | null>(null);
+  const [bleStreaming, setBleStreaming] = useState(false);
+  const [lastFrameAt, setLastFrameAt] = useState<number | null>(null);
   const [transcripts, setTranscripts] = useState<Transcript[]>([]);
   const [currentRecordingId, setCurrentRecordingId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
@@ -59,6 +63,12 @@ export default function RecordScreen({ route }: any) {
     BLEService.on('deviceConnected', handleDeviceConnected);
     BLEService.on('deviceDisconnected', handleDeviceDisconnected);
     BLEService.on('audioChunk', handleAudioChunk);
+    BLEService.on('codecChanged', (c: number) => {
+      setBleCodec(c);
+      Alert.alert('BLE', `Codec: ${c === 20 ? 'Opus' : c === 10 || c === 11 ? 'μ-law' : 'PCM16'}`);
+    });
+    BLEService.on('streamStarted', () => setBleStreaming(true));
+    BLEService.on('streamStopped', () => setBleStreaming(false));
 
     loadTranscriptsFromBackend();
 
@@ -222,6 +232,7 @@ export default function RecordScreen({ route }: any) {
   };
 
   const handleAudioChunk = async (chunk: { base64Wav: string; sampleRate?: number; codec?: number }) => {
+    setLastFrameAt(Date.now());
     if (!currentRecordingId) return;
     try {
       const response = await APIService.sendAudioBase64(chunk.base64Wav, currentRecordingId, 'wav');
@@ -504,17 +515,40 @@ export default function RecordScreen({ route }: any) {
         <View style={styles.header}>
           <Text style={styles.title}>Welcome to Tai</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            {/* BLE status pill */}
+            <View style={[styles.bleStatus, { backgroundColor: isConnected ? `${colors.primary.main}20` : `${colors.text.secondary}20` }] }>
+              <Ionicons name={isConnected ? 'bluetooth' : 'bluetooth-outline'} size={12} color={isConnected ? colors.primary.main : colors.text.secondary} />
+              <Text style={[styles.bleStatusText, { color: isConnected ? colors.primary.main : colors.text.secondary }]}>
+                {isBleConnecting ? 'Connecting…' : isConnected ? (bleStreaming ? 'Streaming' : 'Connected') : 'Disconnected'}
+              </Text>
+              {isConnected && bleCodec != null && (
+                <Text style={[styles.bleStatusText, { color: isConnected ? colors.primary.main : colors.text.secondary }]}>
+                  · {bleCodec === 20 ? 'Opus' : (bleCodec === 10 || bleCodec === 11) ? 'μ-law' : 'PCM16'}
+                </Text>
+              )}
+            </View>
             <TouchableOpacity
               style={[styles.iconButton, { marginRight: spacing.xs }]}
-              onPress={() => {
-                if (isConnected) {
-                  BLEService.disconnectDevice();
-                } else {
-                  BLEService.scanAndConnect();
+              onPress={async () => {
+                try {
+                  if (isConnected) {
+                    await BLEService.disconnectDevice();
+                    return;
+                  }
+                  setIsBleConnecting(true);
+                  await BLEService.scanAndConnect();
+                } catch (e: any) {
+                  Alert.alert('Bluetooth', e?.message || 'Failed to connect. Make sure the device is on and nearby.');
+                } finally {
+                  setIsBleConnecting(false);
                 }
               }}
             >
-              <Ionicons name={isConnected ? 'bluetooth' : 'bluetooth-outline'} size={18} color={isConnected ? colors.primary.main : colors.text.secondary} />
+              {isBleConnecting ? (
+                <ActivityIndicator size="small" color={colors.primary.main} />
+              ) : (
+                <Ionicons name={isConnected ? 'bluetooth' : 'bluetooth-outline'} size={18} color={isConnected ? colors.primary.main : colors.text.secondary} />
+              )}
             </TouchableOpacity>
             {isRecording && (
             <View style={styles.recordingBadge}>
@@ -857,6 +891,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: spacing.md,
+  },
+  bleStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: borderRadius.full,
+  },
+  bleStatusText: {
+    ...typography.caption,
+    fontSize: 12,
   },
   sectionTitle: {
     fontSize: 20,

@@ -66,19 +66,23 @@ class BLEService {
   }
 
   async scanAndConnect(): Promise<void> {
+    console.log('[BLE] scanAndConnect tapped');
     await this.connectToDevice('omi');
   }
 
   async connectToDevice(_deviceId: string): Promise<void> {
     try {
+      console.log('[BLE] starting scan/connect');
       const dev = await this.omi.scanAndConnect();
       this.connectedDevice = { id: dev.id, name: dev.name || 'Omi', connected: true };
+      console.log('[BLE] connected to', this.connectedDevice);
       this.emit('deviceConnected', this.connectedDevice);
       this.codec = await this.omi.readCodecType();
+      console.log('[BLE] codec', this.codec);
       this.sampleRate = (this.codec === 10 || this.codec === 11) ? 8000 : 16000;
       this.emit('codecChanged', this.codec);
     } catch (e) {
-      console.error('Failed to connect:', e);
+      console.error('[BLE] Failed to connect:', e);
       throw e;
     }
   }
@@ -109,6 +113,7 @@ class BLEService {
     this.lastFlushMs = Date.now();
 
     this.omi.monitorAudio((_packetNo, payload) => {
+      if (!payload || payload.length === 0) return;
       if (!this.isStreaming) return;
       let pcm: Int16Array | null = null;
       if (this.codec === 10 || this.codec === 11) {

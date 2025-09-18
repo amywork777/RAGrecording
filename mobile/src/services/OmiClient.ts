@@ -39,11 +39,12 @@ export class OmiClient {
           reject(new Error('Scan timeout'));
         }, timeoutMs);
 
-        this.manager.startDeviceScan(null, { allowDuplicates: false }, async (error, dev) => {
+        // Filter by Omi service to improve discovery reliability on iOS
+        this.manager.startDeviceScan([OMI_SERVICE], { allowDuplicates: false }, async (error, dev) => {
           if (error) { clearTimeout(timer); reject(error); return; }
           if (!dev) return;
           const name = (dev.name ?? '').toLowerCase();
-          if (name !== 'omi') return;
+          if (!name.includes('omi')) return;
 
           this.manager.stopDeviceScan();
           clearTimeout(timer);
