@@ -11,6 +11,8 @@ import {
   Animated,
   Dimensions,
   TextInput,
+  RefreshControl,
+  FlatList,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useIsFocused } from '@react-navigation/native';
@@ -686,22 +688,90 @@ export default function RecordScreen({ route }: any) {
             )}
           </View>
 
-          <ScrollView 
-            ref={scrollViewRef}
-            style={styles.transcriptsList}
-            showsVerticalScrollIndicator={false}
-            refreshControl={
-              // @ts-ignore
-              <import('react-native').RefreshControl
-                refreshing={refreshing}
-                onRefresh={async () => {
-                  try { setRefreshing(true); await loadTranscriptsFromBackend(); } finally { setRefreshing(false); }
-                }}
-                tintColor={colors.primary.main}
-              />
-            }
-          >
-            {filteredTranscripts.length === 0 ? (
+          <FlatList
+            data={filteredTranscripts}
+            keyExtractor={(item) => item.id}
+            refreshing={refreshing}
+            onRefresh={async () => {
+              try { setRefreshing(true); await loadTranscriptsFromBackend(); } finally { setRefreshing(false); }
+            }}
+            contentContainerStyle={{ paddingBottom: 40 }}
+            initialNumToRender={8}
+            windowSize={10}
+            removeClippedSubviews
+            renderItem={({ item: transcript }) => (
+              <TouchableOpacity 
+                style={[
+                  styles.transcriptCard,
+                  highlightedId === transcript.id && styles.highlightedCard
+                ]}
+                onPress={() => toggleExpand(transcript.id)}
+                activeOpacity={0.7}
+              >
+                <LinearGradient
+                  colors={
+                    highlightedId === transcript.id 
+                      ? [`${colors.primary.main}20`, `${colors.secondary.main}15`]
+                      : [`${colors.primary.main}10`, `${colors.secondary.main}05`]
+                  }
+                  style={styles.cardGradient}
+                >
+                  <View style={styles.cardHeader}>
+                    <View style={styles.cardHeaderLeft}>
+                      <Ionicons 
+                        name={transcript.isExpanded ? "chevron-down" : "chevron-forward"} 
+                        size={16} 
+                        color={colors.primary.main} 
+                      />
+                      <View style={styles.titleContainer}>
+                        <Text style={styles.transcriptTitle}>
+                          {transcript.aiTitle || transcript.title || 'Untitled Recording'}
+                        </Text>
+                        <Text style={styles.transcriptTime}>
+                          {transcript.timestamp.toLocaleString()}
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <TouchableOpacity
+                        style={styles.iconButton}
+                        onPress={() => copyReport(transcript)}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      >
+                        <Ionicons name="copy-outline" size={16} color={colors.primary.main} />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.deleteButton}
+                        onPress={() => deleteTranscript(transcript)}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      >
+                        <Ionicons name="trash-outline" size={16} color={colors.accent.error} />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                  {transcript.isExpanded ? (
+                    <View>
+                      <Text style={styles.reportTitleInline}>📄 TaiNecklace Transcription Report</Text>
+                      <Text style={styles.reportMeta}>📅 Date: {transcript.timestamp.toLocaleDateString()}</Text>
+                      <Text style={styles.reportMeta}>🕐 Time: {transcript.timestamp.toLocaleTimeString()}</Text>
+                      <Text style={styles.reportMeta}>⏱️ Duration: {formatDuration(transcript.durationSeconds ?? transcript.duration_seconds)}</Text>
+                      <Text style={styles.reportSection}>🤖 AI Summary:</Text>
+                      <Text style={styles.reportBody}>{transcript.aiSummary || '—'}</Text>
+                      <Text style={styles.reportSection}>📝 Full Transcription:</Text>
+                      <Text style={styles.reportBody}>{(transcript.text && transcript.text.trim().length > 0) ? transcript.text : '[No speech detected]'}</Text>
+                      <Text style={styles.reportFooter}>—{"\n"}Generated by TaiNecklace App{"\n"}AI-powered voice companion</Text>
+                    </View>
+                  ) : (
+                    <View>
+                      <Text style={styles.aiSummary} numberOfLines={2}>
+                        {transcript.aiSummary || 'Summary unavailable'}
+                      </Text>
+                    </View>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
+            )}
+            ListEmptyComponent={
               <View style={styles.emptyState}>
                 <Ionicons 
                   name={searchQuery ? "search-outline" : "mic-off-outline"} 
@@ -715,83 +785,8 @@ export default function RecordScreen({ route }: any) {
                   {searchQuery ? 'Try different search terms' : 'Tap the mic to start recording'}
                 </Text>
               </View>
-            ) : (
-              filteredTranscripts.map((transcript) => (
-                <TouchableOpacity 
-                  key={transcript.id} 
-                  style={[
-                    styles.transcriptCard,
-                    highlightedId === transcript.id && styles.highlightedCard
-                  ]}
-                  onPress={() => toggleExpand(transcript.id)}
-                  activeOpacity={0.7}
-                >
-                  <LinearGradient
-                    colors={
-                      highlightedId === transcript.id 
-                        ? [`${colors.primary.main}20`, `${colors.secondary.main}15`]
-                        : [`${colors.primary.main}10`, `${colors.secondary.main}05`]
-                    }
-                    style={styles.cardGradient}
-                  >
-                    <View style={styles.cardHeader}>
-                      <View style={styles.cardHeaderLeft}>
-                        <Ionicons 
-                          name={transcript.isExpanded ? "chevron-down" : "chevron-forward"} 
-                          size={16} 
-                          color={colors.primary.main} 
-                        />
-                        <View style={styles.titleContainer}>
-                          <Text style={styles.transcriptTitle}>
-                            {transcript.aiTitle || transcript.title || 'Untitled Recording'}
-                          </Text>
-                          <Text style={styles.transcriptTime}>
-                            {transcript.timestamp.toLocaleString()}
-                          </Text>
-                        </View>
-                      </View>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                        <TouchableOpacity
-                          style={styles.iconButton}
-                          onPress={() => copyReport(transcript)}
-                          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                        >
-                          <Ionicons name="copy-outline" size={16} color={colors.primary.main} />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={styles.deleteButton}
-                          onPress={() => deleteTranscript(transcript)}
-                          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                        >
-                          <Ionicons name="trash-outline" size={16} color={colors.accent.error} />
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                    {/* Show AI title + summary collapsed; full report when expanded */}
-                    {transcript.isExpanded ? (
-                      <View>
-                        <Text style={styles.reportTitleInline}>📄 TaiNecklace Transcription Report</Text>
-                        <Text style={styles.reportMeta}>📅 Date: {transcript.timestamp.toLocaleDateString()}</Text>
-                        <Text style={styles.reportMeta}>🕐 Time: {transcript.timestamp.toLocaleTimeString()}</Text>
-                        <Text style={styles.reportMeta}>⏱️ Duration: {formatDuration(transcript.durationSeconds ?? transcript.duration_seconds)}</Text>
-                        <Text style={styles.reportSection}>🤖 AI Summary:</Text>
-                        <Text style={styles.reportBody}>{transcript.aiSummary || '—'}</Text>
-                        <Text style={styles.reportSection}>📝 Full Transcription:</Text>
-                        <Text style={styles.reportBody}>{(transcript.text && transcript.text.trim().length > 0) ? transcript.text : '[No speech detected]'}</Text>
-                        <Text style={styles.reportFooter}>—{"\n"}Generated by TaiNecklace App{"\n"}AI-powered voice companion</Text>
-                      </View>
-                    ) : (
-                      <View>
-                        <Text style={styles.aiSummary} numberOfLines={2}>
-                          {transcript.aiSummary || 'Summary unavailable'}
-                        </Text>
-                      </View>
-                    )}
-                  </LinearGradient>
-                </TouchableOpacity>
-              ))
-            )}
-          </ScrollView>
+            }
+          />
         </View>
       </LinearGradient>
 
