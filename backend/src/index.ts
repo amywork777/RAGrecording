@@ -1,4 +1,5 @@
 import app from './app';
+import supabaseRoutes from './routes/supabase';
 
 const PORT = process.env.PORT || 3000;
 

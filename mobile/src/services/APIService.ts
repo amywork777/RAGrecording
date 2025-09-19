@@ -130,31 +130,40 @@ class APIService {
     return response.json();
   }
 
-  async getRecentTranscripts(limit: number = 10): Promise<SearchResult[]> {
-    // Try to fetch from ZeroEntropy first
+  async getRecentTranscripts(limit: number = 50): Promise<any[]> {
+    // Prefer Supabase as source of truth for UI
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/supabase/recent?limit=${limit}`, {
+        headers: { 'Cache-Control': 'no-cache' },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`Fetched ${data.count} documents from Supabase`);
+        return data.documents || [];
+      }
+    } catch (error) {
+      console.log('Supabase fetch failed, falling back to ZE');
+    }
+
+    // Fallback to ZE if Supabase unavailable
     try {
       const response = await fetch(`${API_BASE_URL}/api/zeroentropy/documents?limit=${limit}`, {
         headers: { 'Cache-Control': 'no-cache' },
       });
-      
       if (response.ok) {
         const data = await response.json();
-        console.log(`Fetched ${data.count} documents from ZeroEntropy`);
+        console.log(`Fetched ${data.count} documents from ZeroEntropy (fallback)`);
         return data.documents || [];
       }
-    } catch (error) {
-      console.log('ZeroEntropy fetch failed, falling back to mock data');
-    }
+    } catch {}
 
-    // Fallback to mock data endpoint
+    // Last resort: mock
     const response = await fetch(`${API_BASE_URL}/api/transcripts/recent?limit=${limit}`, {
       headers: { 'Cache-Control': 'no-cache' },
     });
-
     if (!response.ok) {
       throw new Error(`Failed to fetch recent transcripts: ${response.statusText}`);
     }
-
     return response.json();
   }
 

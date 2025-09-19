@@ -22,25 +22,40 @@ const getZeroEntropyClient = () => {
 // Get all documents from ZeroEntropy
 router.get('/documents', async (req: Request, res: Response) => {
   try {
-    const limit = parseInt(req.query.limit as string) || 50;
+    const requestedLimit = parseInt(req.query.limit as string) || 50;
+    const limit = Math.max(1, Math.min(requestedLimit, 100)); // safety cap
     const client = getZeroEntropyClient();
-    
+    const collection_name = 'ai-wearable-transcripts';
     console.log('Fetching documents from ZeroEntropy...');
-    
-    const documents = await client.documents.getInfoList({
-      collection_name: 'ai-wearable-transcripts',
-      limit: limit,
-    });
-    
-    // Now fetch content for each document
+
+    // Paginate to the end to get the most recent N docs
+    const batchSize = 200;
+    let id_gt: string | undefined = undefined;
+    const tail: any[] = [];
+    for (let i = 0; i < 50; i++) { // safety bound
+      const page: any = await client.documents.getInfoList({
+        collection_name,
+        limit: batchSize,
+        id_gt,
+      } as any);
+      const docs = (page?.documents || []) as any[];
+      if (!docs.length) break;
+      tail.push(...docs);
+      // Keep only the last "limit" items
+      if (tail.length > limit) tail.splice(0, tail.length - limit);
+      id_gt = docs[docs.length - 1]?.id;
+      if (docs.length < batchSize) break; // reached end
+    }
+
+    // Fetch content for the final tail set
     const docsWithContent = await Promise.all(
-      ((documents as any).documents || []).map(async (doc: any) => {
+      tail.map(async (doc: any) => {
         try {
           const docInfo = await client.documents.getInfo({
-            collection_name: 'ai-wearable-transcripts',
+            collection_name,
             path: doc.path,
             include_content: true,
-          });
+          } as any);
           return (docInfo as any).document;
         } catch (error) {
           console.error(`Error fetching content for ${doc.path}:`, error);
