@@ -133,7 +133,9 @@ class APIService {
   async getRecentTranscripts(limit: number = 10): Promise<SearchResult[]> {
     // Try to fetch from ZeroEntropy first
     try {
-      const response = await fetch(`${API_BASE_URL}/api/zeroentropy/documents?limit=${limit}`);
+      const response = await fetch(`${API_BASE_URL}/api/zeroentropy/documents?limit=${limit}`, {
+        headers: { 'Cache-Control': 'no-cache' },
+      });
       
       if (response.ok) {
         const data = await response.json();
@@ -145,7 +147,9 @@ class APIService {
     }
 
     // Fallback to mock data endpoint
-    const response = await fetch(`${API_BASE_URL}/api/transcripts/recent?limit=${limit}`);
+    const response = await fetch(`${API_BASE_URL}/api/transcripts/recent?limit=${limit}`, {
+      headers: { 'Cache-Control': 'no-cache' },
+    });
 
     if (!response.ok) {
       throw new Error(`Failed to fetch recent transcripts: ${response.statusText}`);

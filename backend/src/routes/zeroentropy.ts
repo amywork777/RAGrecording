@@ -81,11 +81,15 @@ router.get('/documents', async (req: Request, res: Response) => {
       })
     );
     
-    // Sort by timestamp (newest first)
-    formattedDocs.sort((a: any, b: any) => 
-      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    );
+    // Sort by timestamp desc, then by path desc for stability
+    formattedDocs.sort((a: any, b: any) => {
+      const tb = new Date(b.timestamp).getTime();
+      const ta = new Date(a.timestamp).getTime();
+      if (tb !== ta) return tb - ta;
+      return (b.path || '').localeCompare(a.path || '');
+    });
     
+    res.setHeader('Cache-Control', 'no-store');
     res.json({
       documents: formattedDocs,
       count: formattedDocs.length,
