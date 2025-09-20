@@ -7,6 +7,7 @@ import transcriptionRoutes from './routes/transcription';
 import searchRoutes from './routes/search';
 import zeroEntropyRoutes from './routes/zeroentropy';
 import supabaseRoutes from './routes/supabase';
+import streamAuthRoutes from './routes/stream';
 import { errorHandler } from './middleware/errorHandler';
 
 const app = express();
@@ -39,6 +40,7 @@ app.use('/api', transcriptionRoutes);
 app.use('/api', searchRoutes);
 app.use('/api/zeroentropy', zeroEntropyRoutes);
 app.use('/api/supabase', supabaseRoutes);
+app.use('/api/stream', streamAuthRoutes);
 
 app.use(errorHandler);
 

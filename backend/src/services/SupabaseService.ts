@@ -94,6 +94,59 @@ class SupabaseService {
     }
   }
 
+  async startSession(input: { user_id: string; source: 'phone'|'omi'; vendor: string; sample_rate: number }): Promise<string | null> {
+    const supabase = this.getClient();
+    if (!supabase) return null;
+    const { data, error } = await supabase
+      .from('sessions')
+      .insert({
+        user_id: input.user_id,
+        source: input.source,
+        vendor: input.vendor,
+        sample_rate: input.sample_rate,
+        started_at: new Date().toISOString(),
+        status: 'active'
+      })
+      .select('id')
+      .single();
+    if (error) {
+      console.error('Supabase startSession error:', error);
+      return null;
+    }
+    return data?.id ?? null;
+  }
+
+  async endSession(session_id: string): Promise<void> {
+    const supabase = this.getClient();
+    if (!supabase) return;
+    const { error } = await supabase
+      .from('sessions')
+      .update({ ended_at: new Date().toISOString(), status: 'ended' })
+      .eq('id', session_id);
+    if (error) {
+      console.error('Supabase endSession error:', error);
+    }
+  }
+
+  async addFinalSegment(input: { session_id: string; start_ms: number; end_ms: number; text: string; words_json?: any }): Promise<void> {
+    const supabase = this.getClient();
+    if (!supabase) return;
+    const { error } = await supabase
+      .from('segments')
+      .insert({
+        session_id: input.session_id,
+        start_ms: input.start_ms,
+        end_ms: input.end_ms,
+        text: input.text,
+        words_json: input.words_json || null,
+        is_final: true,
+        created_at: new Date().toISOString()
+      });
+    if (error) {
+      console.error('Supabase addFinalSegment error:', error);
+    }
+  }
+
   async fetchLatestAnnotationByPath(ze_collection_name: string, ze_path: string): Promise<{ title: string; summary: string } | null> {
     const supabase = this.getClient();
     if (!supabase) return null;

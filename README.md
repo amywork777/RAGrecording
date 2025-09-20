@@ -53,7 +53,7 @@ A full-stack application for AI-powered wearable devices that records, transcrib
 - **Chat Interface**: Q&A interface for querying stored memories
 
 ### Backend
-- **Audio Transcription**: OpenAI Whisper integration for speech-to-text
+- **Audio Transcription**: OpenAI Whisper (batch) + AssemblyAI (batch + realtime)
 - **Vector Storage**: ZeroEntropy integration for embeddings and storage
 - **RAG Pipeline**: Full retrieval-augmented generation for intelligent answers
 - **RESTful API**: Clean endpoints for transcription and search
@@ -98,12 +98,29 @@ npm install
 PORT=3000
 OPENAI_API_KEY=your_openai_api_key_here
 ZEROENTROPY_API_KEY=your_zeroentropy_api_key_here
+# Optional: AssemblyAI (for diarization & realtime)
+ASSEMBLYAI_API_KEY=your_assemblyai_api_key_here
+# Realtime relay
+JWT_SECRET=replace_me
+STREAM_JWT_TTL_SECONDS=600
+# For mobile to learn where to connect
+RELAY_WS_URL=wss://your-domain/ws
+# ffmpeg binary path (if not in PATH)
+FFMPEG_PATH=ffmpeg
 # Optional: enable Supabase metadata + AI annotations
 SUPABASE_URL=https://<your-project>.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 # or for dev only:
 # SUPABASE_ANON_KEY=your_anon_key
 ```
+### Realtime Streaming (dev quickstart)
+
+1. Start backend: `npm run dev`
+2. Get a token: `POST http://localhost:3000/api/stream/token {"source":"phone"}`
+3. Connect WS: `ws://localhost:3000/ws?token=<token>`
+4. Send config (text JSON), then binary frames (PCM16 16k mono or Opus Ogg 48k).
+5. Receive `partial` and `final` events. Finals are persisted; a full transcript is uploaded to ZeroEntropy on session end.
+
 
 4. Start the development server (run this inside the `backend` directory):
 ```bash
