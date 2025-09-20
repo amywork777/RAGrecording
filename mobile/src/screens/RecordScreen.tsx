@@ -65,6 +65,7 @@ export default function RecordScreen({ route }: any) {
   const [filteredTranscripts, setFilteredTranscripts] = useState<Transcript[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const isFocused = useIsFocused();
+  const [liveText, setLiveText] = useState('');
 
   useEffect(() => {
     BLEService.on('deviceConnected', handleDeviceConnected);
@@ -243,6 +244,8 @@ export default function RecordScreen({ route }: any) {
     try {
       const response = await APIService.sendAudioBase64(chunk.base64Wav, currentRecordingId, 'wav');
       if (response.transcription) {
+        // Update live captions with the latest text
+        setLiveText(response.transcription);
         const newTranscript: Transcript = {
           id: uuid.v4() as string,
           text: response.transcription,
@@ -654,6 +657,14 @@ export default function RecordScreen({ route }: any) {
         </View>
 
         <View style={styles.transcriptsSection}>
+          {/* Live Captions */}
+          <View style={styles.liveCaptionsContainer}>
+            <Text style={styles.liveLabel}>Live captions</Text>
+            <Text style={styles.liveText} numberOfLines={3}>
+              {liveText && liveText.trim().length > 0 ? liveText : '—'}
+            </Text>
+          </View>
+
           <View style={styles.transcriptsHeader}>
             <Text style={styles.sectionTitle}>Recent Transcripts</Text>
             <TouchableOpacity
@@ -935,6 +946,25 @@ const styles = StyleSheet.create({
   transcriptsSection: {
     flex: 1,
     paddingHorizontal: spacing.lg,
+  },
+  liveCaptionsContainer: {
+    backgroundColor: colors.background.card,
+    borderRadius: borderRadius.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.surface.border,
+  },
+  liveLabel: {
+    ...typography.caption,
+    color: colors.text.secondary,
+    marginBottom: 4,
+  },
+  liveText: {
+    ...typography.body,
+    color: colors.text.primary,
+    fontSize: 14,
   },
   transcriptsHeader: {
     flexDirection: 'row',
