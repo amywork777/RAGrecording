@@ -149,8 +149,9 @@ export function attachRealtimeRelay(server: HTTPServer) {
           state.configReceived = true;
           state.diarizationEnabled = cfg.diarize ?? true;
 
-          // Connect AAI realtime
-          const aai = connectAAI(16000, state.diarizationEnabled, (ev) => {
+          // Connect AAI realtime with client's intended sample_rate (normalize to 16000 at input stage)
+          const targetRate = 16000; // AAI expects 16k PCM
+          const aai = connectAAI(targetRate, state.diarizationEnabled, (ev) => {
             if (ev.message_type === 'PartialTranscript') {
               const start_ms = ev.audio_start ?? 0;
               const end_ms = ev.audio_end ?? 0;
@@ -201,7 +202,7 @@ export function attachRealtimeRelay(server: HTTPServer) {
                 '-ar', String(cfg.sample_rate || state!.sampleRate || 48000),
                 '-ac', '1',
                 '-i', 'pipe:0',
-                '-ar', '16000',
+                '-ar', String(targetRate),
                 '-ac', '1',
                 '-f', 's16le',
                 'pipe:1'

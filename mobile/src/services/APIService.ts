@@ -30,6 +30,7 @@ function deriveDefaultBaseUrl(): string {
 }
 
 const API_BASE_URL = deriveDefaultBaseUrl();
+export const API_BASE = API_BASE_URL;
 // Helpful log to verify at runtime
 // eslint-disable-next-line no-console
 console.log('API base URL:', API_BASE_URL);

@@ -18,7 +18,7 @@ class BLEService {
   private sampleRate: number = 16000;
   private pcmBuffers: Int16Array[] = [];
   private lastFlushMs: number = Date.now();
-  private flushIntervalMs: number = 4000; // accumulate ~4s of audio per upload
+  private flushIntervalMs: number = 800; // accumulate ~0.8s of audio per upload for snappier captions
 
   // Event emitter methods
   on(event: string, callback: EventCallback): void {
@@ -119,6 +119,13 @@ class BLEService {
     this.omi.monitorAudio((_packetNo, payload) => {
       if (!payload || payload.length === 0) return;
       if (!this.isStreaming) return;
+      if (this.codec === 20) {
+        // Raw Opus: forward to relay as-is for server-side decode
+        try {
+          this.emit('opusChunk', { opus: new Uint8Array(payload), sampleRate: 48000 });
+        } catch {}
+        return;
+      }
       let pcm: Int16Array | null = null;
       if (this.codec === 10 || this.codec === 11) {
         // μ-law
@@ -158,6 +165,10 @@ class BLEService {
     this.pcmBuffers = [];
     const base64Wav = pcm16ToWavBase64(joined, this.sampleRate);
     this.emit('audioChunk', { base64Wav, sampleRate: this.sampleRate, codec: this.codec });
+    try {
+      const byteView = new Uint8Array(joined.buffer.slice(0));
+      this.emit('pcmChunk', { pcm16: byteView, sampleRate: this.sampleRate, codec: this.codec });
+    } catch {}
   }
 
   isDeviceConnected(): boolean {

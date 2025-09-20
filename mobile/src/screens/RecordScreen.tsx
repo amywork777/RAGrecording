@@ -19,8 +19,9 @@ import { useIsFocused } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import BLEService from '../services/BLEService';
-import APIService from '../services/APIService';
+import APIService, { API_BASE } from '../services/APIService';
 import AudioRecordingService from '../services/AudioRecordingService';
+import MicStreamService from '../services/MicStreamService';
 import uuid from 'react-native-uuid';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -71,6 +72,8 @@ export default function RecordScreen({ route }: any) {
     BLEService.on('deviceConnected', handleDeviceConnected);
     BLEService.on('deviceDisconnected', handleDeviceDisconnected);
     BLEService.on('audioChunk', handleAudioChunk);
+    BLEService.on('pcmChunk', handlePcmChunk);
+    BLEService.on('opusChunk', handleOpusChunk);
     BLEService.on('codecChanged', (c: number) => {
       setBleCodec(c);
       Alert.alert('BLE', `Codec: ${c === 20 ? 'Opus' : c === 10 || c === 11 ? 'μ-law' : 'PCM16'}`);
@@ -226,6 +229,7 @@ export default function RecordScreen({ route }: any) {
       const recId = uuid.v4() as string;
       setCurrentRecordingId(recId);
       BLEService.startAudioStream();
+      openRelay();
     } catch (e) {}
     Alert.alert('Connected', 'Successfully connected to Omi');
   };
@@ -233,6 +237,7 @@ export default function RecordScreen({ route }: any) {
   const handleDeviceDisconnected = () => {
     setIsConnected(false);
     try { BLEService.stopAudioStream(); } catch {}
+    closeRelay();
     setIsRecording(false);
     setCurrentRecordingId('');
     Alert.alert('Disconnected', 'Disconnected from Omi');
@@ -262,10 +267,86 @@ export default function RecordScreen({ route }: any) {
     }
   };
 
+  // Optional: live relay streaming (phone mic path). For Omi, prefer BLE to relay directly when available.
+  const relayRef = useRef<WebSocket | null>(null);
+  const [isRelayConnected, setIsRelayConnected] = useState(false);
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
+
+  const openRelay = async () => {
+    try {
+      const resp = await fetch(`${API_BASE}/api/stream/token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source: 'omi', sample_rate: 16000 }),
+      });
+      const data = await resp.json();
+      const { token, relay_ws_url } = data;
+      setSessionToken(token);
+      const ws = new WebSocket(`${relay_ws_url}?token=${encodeURIComponent(token)}`);
+      relayRef.current = ws;
+      ws.onopen = () => {
+        setIsRelayConnected(true);
+        ws.send(JSON.stringify({
+          type: 'config',
+          source: 'omi',
+          encoding: 'pcm16',
+          container: 'raw',
+          sample_rate: 16000,
+          channels: 1,
+          frame_ms: 20,
+          language: 'en-US',
+          diarize: true,
+          punctuate: true,
+        }));
+      };
+      ws.onmessage = (evt) => {
+        try {
+          const ev = JSON.parse(String(evt.data));
+          if (ev.type === 'partial') {
+            setLiveText(ev.text || '');
+          } else if (ev.type === 'final') {
+            setLiveText(ev.text || liveText);
+          }
+        } catch {}
+      };
+      ws.onclose = () => { setIsRelayConnected(false); };
+      ws.onerror = () => { setIsRelayConnected(false); };
+    } catch (e) {
+      console.warn('openRelay failed', e);
+    }
+  };
+
+  const closeRelay = () => {
+    try { relayRef.current?.send(JSON.stringify({ type: 'stop' })); } catch {}
+    try { relayRef.current?.close(); } catch {}
+    relayRef.current = null;
+    setIsRelayConnected(false);
+  };
+
+  const handlePcmChunk = (chunk: { pcm16: Uint8Array; sampleRate?: number; codec?: number }) => {
+    if (!relayRef.current || relayRef.current.readyState !== 1) return;
+    // Send raw PCM16 frames as binary
+    try {
+      relayRef.current.send(chunk.pcm16); 
+    } catch {}
+  };
+
+  const handleOpusChunk = (chunk: { opus: Uint8Array; sampleRate?: number }) => {
+    if (!relayRef.current || relayRef.current.readyState !== 1) return;
+    // For Opus, we need config to be encoding:"opus" and container:"raw" or "ogg" at connect time.
+    // For simplicity, assume raw packets here; if your device sends Ogg pages, set container:"ogg" in openRelay config.
+    try {
+      relayRef.current.send(chunk.opus);
+    } catch {}
+  };
+
   const toggleRecording = async () => {
     if (isRecording) {
       try {
         setIsLoading(true);
+        // Stop live mic → relay
+        try { await MicStreamService.stop(); } catch {}
+        closeRelay();
         
         const audioUri = await AudioRecordingService.stopRecording();
         
@@ -340,7 +421,14 @@ export default function RecordScreen({ route }: any) {
         const recordingId = uuid.v4() as string;
         setCurrentRecordingId(recordingId);
         
-        await AudioRecordingService.startRecording();
+        // Open relay and start live mic
+        await openRelay();
+        await MicStreamService.start((bytes) => {
+          if (relayRef.current && relayRef.current.readyState === 1) {
+            try { relayRef.current.send(bytes); } catch {}
+          }
+        }, 16000);
+        await AudioRecordingService.startRecording(); // keep file for upload/fallback
         setIsRecording(true);
         console.log('Audio recording started');
       } catch (error) {
