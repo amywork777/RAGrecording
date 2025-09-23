@@ -17,6 +17,7 @@
       "infoPlist": {
         "NSBluetoothAlwaysUsageDescription": "We use Bluetooth to connect to your Omi wearable.",
         "NSBluetoothPeripheralUsageDescription": "We use Bluetooth to connect to your Omi wearable.",
+        "NSMicrophoneUsageDescription": "We use the microphone for live captions.",
         "UIBackgroundModes": [
           "bluetooth-central",
           "audio",

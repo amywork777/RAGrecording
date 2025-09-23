@@ -417,22 +417,31 @@ export default function RecordScreen({ route }: any) {
         setCurrentRecordingId('');
       }
     } else {
+      const recordingId = uuid.v4() as string;
+      setCurrentRecordingId(recordingId);
+      // Best-effort open relay and mic streaming; do not block recording if it fails
       try {
-        const recordingId = uuid.v4() as string;
-        setCurrentRecordingId(recordingId);
-        
-        // Open relay and start live mic
         await openRelay();
+      } catch (e) {
+        console.warn('Relay open failed (will continue without live captions)', e);
+      }
+      try {
         await MicStreamService.start((bytes) => {
           if (relayRef.current && relayRef.current.readyState === 1) {
             try { relayRef.current.send(bytes); } catch {}
           }
         }, 16000);
-        await AudioRecordingService.startRecording(); // keep file for upload/fallback
+      } catch (e) {
+        console.warn('Live mic streaming unavailable (falling back to local recording only)');
+      }
+      try {
+        await AudioRecordingService.startRecording();
         setIsRecording(true);
         console.log('Audio recording started');
       } catch (error) {
         console.error('Failed to start recording:', error);
+        try { await MicStreamService.stop(); } catch {}
+        closeRelay();
         Alert.alert('Recording Error', 'Failed to start recording. Please check microphone permissions.');
         setIsRecording(false);
       }

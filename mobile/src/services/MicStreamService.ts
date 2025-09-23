@@ -1,10 +1,11 @@
 // Lightweight wrapper around react-native-audio-record
 // Streams PCM16 16k mono frames via a callback for realtime WS
+import { decode as atob } from 'base-64';
 
 type OnPcmCallback = (pcm16: Uint8Array) => void;
 
 function base64ToUint8Array(base64: string): Uint8Array {
-  const binaryString = globalThis.atob ? globalThis.atob(base64) : Buffer.from(base64, 'base64').toString('binary');
+  const binaryString = atob(base64);
   const len = binaryString.length;
   const bytes = new Uint8Array(len);
   for (let i = 0; i < len; i++) {
