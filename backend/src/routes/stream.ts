@@ -28,7 +28,20 @@ router.post('/token', async (req: Request, res: Response) => {
     );
 
     const relayUrl = (process.env.RELAY_WS_URL || '').trim();
-    const wsUrl = relayUrl || `ws://localhost:${process.env.PORT || 3000}/ws`;
+
+    // Derive WS URL from request host if not explicitly configured
+    let wsUrl: string;
+    if (relayUrl) {
+      wsUrl = relayUrl;
+    } else {
+      const host = req.headers['x-forwarded-host'] as string || req.headers.host || '';
+      // Prefer forwarded proto when behind proxies (Vercel/NGINX)
+      const forwardedProto = (req.headers['x-forwarded-proto'] as string) || '';
+      const isSecure = forwardedProto.includes('https');
+      const scheme = isSecure ? 'wss' : 'ws';
+      // Fallback: if no host header, default to localhost (dev)
+      wsUrl = host ? `${scheme}://${host}/ws` : `ws://localhost:${process.env.PORT || 3000}/ws`;
+    }
 
     res.json({ token, relay_ws_url: wsUrl });
   } catch (e) {

@@ -286,18 +286,20 @@ export default function RecordScreen({ route }: any) {
       relayRef.current = ws;
       ws.onopen = () => {
         setIsRelayConnected(true);
-        ws.send(JSON.stringify({
+        const useOpus = bleCodec === 20; // 20 == Opus (per BLEService)
+        const cfg = {
           type: 'config',
           source: 'omi',
-          encoding: 'pcm16',
-          container: 'raw',
-          sample_rate: 16000,
+          encoding: useOpus ? 'opus' as const : 'pcm16' as const,
+          container: useOpus ? 'raw' as const : 'raw' as const,
+          sample_rate: useOpus ? 48000 : 16000,
           channels: 1,
           frame_ms: 20,
           language: 'en-US',
           diarize: true,
           punctuate: true,
-        }));
+        };
+        ws.send(JSON.stringify(cfg));
       };
       ws.onmessage = (evt) => {
         try {
@@ -305,7 +307,7 @@ export default function RecordScreen({ route }: any) {
           if (ev.type === 'partial') {
             setLiveText(ev.text || '');
           } else if (ev.type === 'final') {
-            setLiveText(ev.text || liveText);
+            setLiveText((prev) => ev.text || prev);
           }
         } catch {}
       };
@@ -327,7 +329,8 @@ export default function RecordScreen({ route }: any) {
     if (!relayRef.current || relayRef.current.readyState !== 1) return;
     // Send raw PCM16 frames as binary
     try {
-      relayRef.current.send(chunk.pcm16); 
+      const buf = chunk.pcm16.buffer.slice(chunk.pcm16.byteOffset, chunk.pcm16.byteOffset + chunk.pcm16.byteLength);
+      relayRef.current.send(buf);
     } catch {}
   };
 
@@ -336,7 +339,8 @@ export default function RecordScreen({ route }: any) {
     // For Opus, we need config to be encoding:"opus" and container:"raw" or "ogg" at connect time.
     // For simplicity, assume raw packets here; if your device sends Ogg pages, set container:"ogg" in openRelay config.
     try {
-      relayRef.current.send(chunk.opus);
+      const buf = chunk.opus.buffer.slice(chunk.opus.byteOffset, chunk.opus.byteOffset + chunk.opus.byteLength);
+      relayRef.current.send(buf);
     } catch {}
   };
 
@@ -428,7 +432,10 @@ export default function RecordScreen({ route }: any) {
       try {
         await MicStreamService.start((bytes) => {
           if (relayRef.current && relayRef.current.readyState === 1) {
-            try { relayRef.current.send(bytes); } catch {}
+            try {
+              const buf = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+              relayRef.current.send(buf);
+            } catch {}
           }
         }, 16000);
       } catch (e) {
